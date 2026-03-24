@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Main backgrounds */
+    --background: 210 20% 98%;
+    --foreground: 220 20% 15%;
+
+    /* Cards and surfaces */
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 15%;
+
+    /* Primary brand color - professional blue */
+    --primary: 217 91% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - light blue-gray */
+    --secondary: 210 30% 95%;
+    --secondary-foreground: 220 20% 25%;
+
+    /* Muted surfaces */
+    --muted: 210 20% 94%;
+    --muted-foreground: 215 15% 50%;
+
+    /* Accent - teal */
+    --accent: 170 60% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Destructive / error */
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Success green */
+    --success: 142 60% 45%;
+    --success-foreground: 0 0% 100%;
+
+    /* Warning amber */
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Borders and inputs */
+    --border: 214 25% 88%;
+    --input: 214 25% 88%;
+    --ring: 217 91% 50%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Main backgrounds */
+    --background: 220 25% 10%;
+    --foreground: 210 20% 98%;
+
+    /* Cards and surfaces */
+    --card: 220 25% 14%;
+    --card-foreground: 210 20% 98%;
+
+    --popover: 220 25% 14%;
+    --popover-foreground: 210 20% 98%;
+
+    /* Primary brand color - slightly lighter for dark mode contrast */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - dark blue-gray */
+    --secondary: 220 25% 20%;
+    --secondary-foreground: 210 20% 98%;
+
+    /* Muted surfaces */
+    --muted: 220 25% 20%;
+    --muted-foreground: 215 15% 70%;
+
+    /* Accent - teal */
+    --accent: 170 60% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Destructive / error */
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Success green */
+    --success: 142 60% 45%;
+    --success-foreground: 0 0% 100%;
+
+    /* Warning amber */
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Borders and inputs */
+    --border: 220 25% 25%;
+    --input: 220 25% 25%;
+    --ring: 217 91% 60%;
+
+    --sidebar-background: 220 25% 12%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 25% 20%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 220 25% 25%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+}

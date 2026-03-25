@@ -1,83 +1,98 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-require('dotenv').config(); // Load environment variables
+const bcrypt = require('bcryptjs'); // to scramble passwords
+const jwt = require('jsonwebtoken'); // for the digital login "passports"
+require('dotenv').config(); 
 
-// Import the student model from the same folder
 const Student = require('./Student'); 
 
-// Initialize the Express app
 const app = express();
 
-// Middleware setup
-app.use(cors()); // Allow requests from the React frontend
-app.use(express.json()); // Parse incoming JSON payloads
+app.use(cors()); 
+app.use(express.json()); 
 
-// Connect to MongoDB Atlas
+// fire up the database connection
 console.log("⏳ Attempting to connect to MongoDB..."); 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ Connected to MongoDB successfully!'))
   .catch((err) => console.error('❌ MongoDB connection error:', err));
 
-// Basic test route to verify the API is running
 app.get('/api/test', (req, res) => {
-  res.json({ 
-    success: true, 
-    message: "Smart Placement Analyzer backend is live!" 
-  });
+  res.json({ success: true, message: "backend is live!" });
 });
 
-// Route to save a new student to the database
+// --- SIGNUP ROUTE ---
 app.post('/api/students', async (req, res) => {
   try {
-    // Extract the data sent from the frontend (Now including password)
     const { name, email, password, skills, graduationYear } = req.body;
 
-    // Create a new student document using the model (Now including password)
+    // make sure this email isn't already taken
+    const existingUser = await Student.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: "Email already in use." });
+    }
+
+    // scramble the password before it even touches the database
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     const newStudent = new Student({
       name,
       email,
-      password,
+      password: hashedPassword, 
       skills,
       graduationYear
     });
-
-    // Save it to MongoDB
+    
     const savedStudent = await newStudent.save();
 
-    // Send a success message and the saved data back to the frontend
-    res.status(201).json({ success: true, student: savedStudent });
+    // create a secure token that lasts for a week
+    const token = jwt.sign(
+      { id: savedStudent._id }, 
+      process.env.JWT_SECRET,   
+      { expiresIn: '7d' }       
+    );
+
+    res.status(201).json({ 
+      success: true, 
+      token, 
+      student: { name: savedStudent.name, email: savedStudent.email } 
+    });
+
   } catch (error) {
-    console.error("Error saving student:", error);
-    res.status(500).json({ success: false, message: "Failed to save student data" });
+    console.error("Signup error:", error);
+    res.status(500).json({ success: false, message: "Server error during signup" });
   }
 });
 
-// Start the server
-const PORT = process.env.PORT || 5000;
-// Route to handle user login
+// --- LOGIN ROUTE ---
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 1. Search the database for a student with this email
-    const student = await Student.findOne({ email: email });
-
-    // 2. If no student is found, send an error
+    const student = await Student.findOne({ email });
     if (!student) {
       return res.status(404).json({ success: false, message: "Account not found." });
     }
 
-    // 3. Check if the password matches
-    // Note: This is checking plain text right now. We will add secure hashing later!
-    if (student.password !== password) {
+    // check if the typed password matches the scrambled one in the DB
+    const isMatch = await bcrypt.compare(password, student.password);
+    if (!isMatch) {
       return res.status(401).json({ success: false, message: "Incorrect password." });
     }
 
-    // 4. If email and password match, send a success response
+    // if it matches, give them their token
+    const token = jwt.sign(
+      { id: student._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
     res.status(200).json({ 
       success: true, 
       message: "Login successful",
+      token, 
       student: { name: student.name, email: student.email } 
     });
 
@@ -87,6 +102,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`✅ Server is running on http://localhost:${PORT}`);
 });

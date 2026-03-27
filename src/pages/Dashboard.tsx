@@ -1,140 +1,145 @@
-import { useState, useEffect } from "react";
-import { getSkillAnalysis } from "../services/api";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell,
-} from "recharts";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 const Dashboard = () => {
-  const [data, setData] = useState<{
-    readinessScore: number;
-    matchedSkills: string[];
-    missingSkills: string[];
-  } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState("Student");
+  const [mySkills, setMySkills] = useState<string[]>([]);
+  
+  // The core tech stack grouped by category for the Bar Graph
+  const skillCategories = [
+    { title: "Frontend", skills: ["React", "JavaScript", "HTML", "CSS", "TypeScript"] },
+    { title: "Backend", skills: ["Node.js", "Express", "Python", "Java", "C++"] },
+    { title: "Data & Tools", skills: ["MongoDB", "SQL", "Git", "Docker", "AWS"] }
+  ];
 
-  // Getting the name from our login save point
-  const userName = localStorage.getItem("userName") || "Student";
+  // Flatten the array to get all target skills for the master score
+  const targetSkills = skillCategories.flatMap(cat => cat.skills);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await getSkillAnalysis();
-        setData(result);
-      } catch (err) {
-        console.error("Dashboard data fetch failed:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    const storedName = localStorage.getItem("userName");
+    if (storedName) setUserName(storedName);
+
+    const storedSkills = localStorage.getItem("userSkills");
+    if (storedSkills) {
+      setMySkills(JSON.parse(storedSkills));
+    }
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <p className="text-muted-foreground animate-pulse">Loading dashboard...</p>
-      </div>
-    );
-  }
-
-  if (!data) return null;
-
-  // Modernized Bar Data with cleaner colors
-  const barData = [
-    { name: "Matched", count: data.matchedSkills.length, fill: "#22c55e" },
-    { name: "Missing", count: data.missingSkills.length, fill: "#ef4444" },
-  ];
-
-  const pieData = [
-    { name: "Ready", value: data.readinessScore },
-    { name: "Gap", value: 100 - data.readinessScore },
-  ];
-  const PIE_COLORS = ["#3b82f6", "#f1f5f9"];
+  // Calculate master score
+  const matchedSkills = mySkills.filter(skill => targetSkills.includes(skill));
+  const missingSkills = targetSkills.filter(skill => !mySkills.includes(skill));
+  const score = targetSkills.length > 0 ? Math.round((matchedSkills.length / targetSkills.length) * 100) : 0;
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-8">
-      {/* Updated Top Text */}
-      <h1 className="mb-2 text-3xl font-bold text-foreground">Welcome, {userName}!</h1>
-      <p className="mb-8 text-muted-foreground text-lg">
-        Here is your personalized skill analysis and placement readiness report.
-      </p>
-
-      {/* Readiness Score + Chart Row */}
-      <div className="mb-8 grid gap-6 md:grid-cols-2">
-        <div className="flex flex-col items-center rounded-xl border bg-card p-6 shadow-sm">
-          <h3 className="mb-4 text-lg font-semibold text-foreground">Readiness Score</h3>
-          <ResponsiveContainer width={180} height={180}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%" cy="50%"
-                innerRadius={55} outerRadius={80}
-                dataKey="value"
-                startAngle={90} endAngle={-270}
-                stroke="none"
-              >
-                {pieData.map((_, index) => (
-                  <Cell key={index} fill={PIE_COLORS[index]} />
-                ))}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-          <p className="mt-2 text-3xl font-bold text-primary">{data.readinessScore}%</p>
-          <p className="text-sm text-muted-foreground uppercase tracking-wider font-medium">Placement Ready</p>
+    <div className="container mx-auto max-w-6xl px-4 py-12">
+      {/* Restored to max-w-6xl for that clean, focused layout */}
+      
+      {/* Welcome Header */}
+      <div className="mb-8 flex flex-col items-start justify-between gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-8 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="mb-2 text-3xl font-bold text-foreground">Welcome back, {userName}!</h1>
+          <p className="text-muted-foreground">Here is your live Smart Placement Analysis.</p>
         </div>
-
-        {/* Improved Bar Chart */}
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <h3 className="mb-4 text-lg font-semibold text-foreground">Skills Comparison</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 13, fontWeight: 500 }} />
-              <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 13 }} />
-              <Tooltip cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
-              <Bar dataKey="count" radius={[6, 6, 0, 0]} barSize={45}>
-                {barData.map((entry, index) => (
-                  <Cell key={index} fill={entry.fill} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <Link to="/resume" className="whitespace-nowrap rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-sm transition-opacity hover:opacity-90">
+          Update Resume
+        </Link>
       </div>
 
-      {/* Original Skill Lists Design */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <h3 className="mb-3 text-lg font-semibold text-green-600">
-            ✅ Matched Skills ({data.matchedSkills.length})
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {data.matchedSkills.map((skill) => (
-              <span
-                key={skill}
-                className="rounded-full bg-green-500/10 px-4 py-1.5 text-sm font-semibold text-green-600 border border-green-500/20"
-              >
-                {skill}
-              </span>
-            ))}
+      <div className="grid gap-6 lg:grid-cols-3">
+        
+        {/* Left Column: Pie Chart (Readiness Score) */}
+        <div className="col-span-1 flex flex-col items-center justify-center rounded-2xl border bg-card p-8 shadow-sm text-center h-full">
+          <h2 className="mb-6 text-xl font-bold text-foreground">Readiness Score</h2>
+          
+          <div className="relative flex h-48 w-48 items-center justify-center rounded-full border-[14px] border-muted bg-background shadow-inner">
+            <div 
+              className="absolute inset-0 rounded-full border-[14px] border-primary transition-all duration-1000"
+              style={{ clipPath: `inset(${100 - score}% 0 0 0)` }}
+            ></div>
+            <span className="text-5xl font-extrabold text-foreground">{score}%</span>
           </div>
+          
+          <p className="mt-8 text-sm font-medium text-muted-foreground">
+            {matchedSkills.length} of {targetSkills.length} Core Skills Found
+          </p>
         </div>
 
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <h3 className="mb-3 text-lg font-semibold text-red-600">
-            ❌ Missing Skills ({data.missingSkills.length})
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {data.missingSkills.map((skill) => (
-              <span
-                key={skill}
-                className="rounded-full bg-red-500/10 px-4 py-1.5 text-sm font-semibold text-red-600 border border-red-500/20"
-              >
-                {skill}
-              </span>
-            ))}
+        {/* Right Column: The Bar Graphs & Lists */}
+        <div className="col-span-1 lg:col-span-2 flex flex-col gap-6">
+          
+          {/* THE BAR GRAPH SECTION */}
+          <div className="rounded-2xl border bg-card p-8 shadow-sm">
+            <h2 className="mb-6 text-xl font-bold text-foreground flex items-center gap-2">
+              <span>📈</span> Skill Distribution
+            </h2>
+            
+            <div className="space-y-6">
+              {skillCategories.map((category, index) => {
+                const catMatches = category.skills.filter(s => mySkills.includes(s)).length;
+                const catTotal = category.skills.length;
+                const catPercentage = Math.round((catMatches / catTotal) * 100);
+
+                return (
+                  <div key={index}>
+                    <div className="mb-2 flex justify-between text-sm font-semibold">
+                      <span className="text-foreground">{category.title}</span>
+                      <span className="text-muted-foreground">{catPercentage}%</span>
+                    </div>
+                    {/* The Bar Background */}
+                    <div className="h-4 w-full rounded-full bg-muted overflow-hidden">
+                      {/* The Filled Bar */}
+                      <div 
+                        className="h-full bg-primary transition-all duration-1000 ease-out rounded-full" 
+                        style={{ width: `${catPercentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
+
+          {/* The Detailed Skill Badges */}
+          <div className="rounded-2xl border bg-card p-8 shadow-sm">
+            <div className="grid gap-8 sm:grid-cols-2">
+              {/* Verified Skills */}
+              <div>
+                <h3 className="mb-4 text-sm font-bold text-green-600 flex items-center gap-2">
+                  <span>✅</span> Verified on Resume
+                </h3>
+                {mySkills.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {mySkills.map((skill, index) => (
+                      <span key={index} className="rounded-lg bg-green-50 px-3 py-1.5 text-sm font-bold text-green-700 border border-green-200 shadow-sm">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No skills detected yet.</p>
+                )}
+              </div>
+
+              {/* Missing Skills */}
+              <div>
+                <h3 className="mb-4 text-sm font-bold text-destructive flex items-center gap-2">
+                  <span>🎯</span> Recommended to Learn
+                </h3>
+                {missingSkills.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {missingSkills.map((skill, index) => (
+                      <span key={index} className="rounded-lg bg-destructive/10 px-3 py-1.5 text-sm font-bold text-destructive border border-destructive/20 shadow-sm">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm font-semibold text-green-600">You have all the core skills! 🎉</p>
+                )}
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

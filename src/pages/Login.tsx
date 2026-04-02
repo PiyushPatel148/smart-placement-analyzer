@@ -34,6 +34,18 @@ const Login = ({ onLogin }: LoginProps) => {
         localStorage.setItem("token", data.token);
         localStorage.setItem("userName", data.student.name);
         
+        // Save the student's unique database ID
+        // We need this so the Resume Upload page knows who is saving skills!
+        if (data.student.id) {
+          localStorage.setItem("studentId", data.student.id);
+        }
+        
+        // Save existing skills from the database
+        // This makes sure the Dashboard charts load immediately upon login!
+        if (data.student.skills) {
+          localStorage.setItem("userSkills", JSON.stringify(data.student.skills));
+        }
+        
         onLogin(); 
         setSuccess(`Welcome back, ${data.student.name}!`);
         setTimeout(() => navigate("/"), 1500);

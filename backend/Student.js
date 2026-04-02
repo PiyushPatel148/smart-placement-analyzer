@@ -1,4 +1,4 @@
-const mongoose = require('mongoose'); // <--- This is the line that was missing!
+const mongoose = require('mongoose');
 
 // Define the rules for the student data
 const studentSchema = new mongoose.Schema({
@@ -22,6 +22,14 @@ const studentSchema = new mongoose.Schema({
   graduationYear: {
     type: Number,
     required: true
+  },
+  education: {
+    type: String,
+    default: ""
+  },
+  preferredRole: {
+    type: String,
+    default: ""
   }
 }, { timestamps: true }); 
 

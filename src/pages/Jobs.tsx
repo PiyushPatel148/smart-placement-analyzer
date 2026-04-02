@@ -82,7 +82,7 @@ const Jobs = () => {
         </p>
       </div>
 
-      {/* 🔍 Search Bar Component */}
+      {/* Search Bar Component */}
       <div className="mb-12 relative max-w-2xl mx-auto group">
         <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
           <span className="text-xl">🔍</span>

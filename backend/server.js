@@ -15,10 +15,10 @@ const app = express();
 app.use(cors()); 
 app.use(express.json()); 
 
-console.log("⏳ Attempting to connect to MongoDB..."); 
+console.log("Attempting to connect to MongoDB..."); 
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('✅ Connected to MongoDB successfully!'))
-  .catch((err) => console.error('❌ MongoDB connection error:', err));
+  .then(() => console.log('Connected to MongoDB successfully!'))
+  .catch((err) => console.error('MongoDB connection error:', err));
 
 app.get('/api/test', (req, res) => {
   res.json({ success: true, message: "backend is live!" });
@@ -41,7 +41,11 @@ app.post('/api/students', async (req, res) => {
     const savedStudent = await newStudent.save();
     const token = jwt.sign({ id: savedStudent._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-    res.status(201).json({ success: true, token, student: { name: savedStudent.name, email: savedStudent.email } });
+    res.status(201).json({ 
+      success: true, 
+      token, 
+      student: { id: savedStudent._id, name: savedStudent.name, email: savedStudent.email } 
+    });
   } catch (error) {
     console.error("Signup error:", error);
     res.status(500).json({ success: false, message: "Server error during signup" });
@@ -60,24 +64,73 @@ app.post('/api/login', async (req, res) => {
 
     const token = jwt.sign({ id: student._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-    res.status(200).json({ success: true, message: "Login successful", token, student: { name: student.name, email: student.email } });
+    res.status(200).json({ 
+      success: true, 
+      message: "Login successful", 
+      token, 
+      student: { 
+        id: student._id, 
+        name: student.name, 
+        email: student.email,
+        skills: student.skills 
+      } 
+    });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ success: false, message: "Server error during login" });
   }
 });
 
-// --- Helper Function: Safely extract text using pdf2json ---
+// --- GET STUDENT PROFILE ---
+app.get('/api/students/:id', async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.id);
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+    res.json({ success: true, student });
+  } catch (error) {
+    console.error("Fetch profile error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// --- UPDATE STUDENT PROFILE ---
+app.put('/api/students/:id', async (req, res) => {
+  try {
+    // Destructure all required fields, including the recently added ones
+    const { name, skills, graduationYear, education, preferredRole } = req.body;
+    
+    // Find the student by ID and update their fields
+    const updatedStudent = await Student.findByIdAndUpdate(
+      req.params.id,
+      { name, skills, graduationYear, education, preferredRole },
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedStudent) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Profile updated successfully!", 
+      student: updatedStudent 
+    });
+  } catch (error) {
+    console.error("Update profile error:", error);
+    res.status(500).json({ success: false, message: "Server error updating profile" });
+  }
+});
+
+// Helper function to extract text from PDF buffer
 const extractTextFromPDF = (buffer) => {
   return new Promise((resolve, reject) => {
-    // The "1" tells the parser to skip images and just grab raw text
     const pdfParser = new PDFParser(null, 1);
-    
     pdfParser.on("pdfParser_dataError", errData => reject(errData.parserError));
     pdfParser.on("pdfParser_dataReady", () => {
       resolve(pdfParser.getRawTextContent());
     });
-
     pdfParser.parseBuffer(buffer);
   });
 };
@@ -89,43 +142,53 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
       return res.status(400).json({ success: false, message: "No file uploaded." });
     }
 
-    console.log("⚙️ Extracting text using pdf2json...");
-    
-    // 2. Use our new helper function to read the file
-    const resumeText = await extractTextFromPDF(req.file.buffer);
-    console.log(`✅ PDF Parsed successfully! Extracted ${resumeText.length} characters.`);
+    const { studentId } = req.body;
+    if (!studentId) {
+      return res.status(400).json({ success: false, message: "Student ID is required." });
+    }
 
-    // 3. The Smart Analyzer: Our dictionary of CS skills
+    console.log("Extracting text using pdf2json...");
+    const resumeText = await extractTextFromPDF(req.file.buffer);
+    
     const techDictionary = [
       "React", "Node.js", "Express", "MongoDB", "Python", "Java", 
       "C++", "C", "Machine Learning", "Data Analysis", "SQL", "MySQL", 
       "AWS", "Docker", "Git", "HTML", "CSS", "JavaScript", "TypeScript"
     ];
 
-    // 4. Scan the resume text
     const matchedSkills = techDictionary.filter(skill => {
       const escapedSkill = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(`\\b${escapedSkill}\\b`, 'i');
       return regex.test(resumeText);
     });
 
-    console.log(`🎯 Algorithm found ${matchedSkills.length} skills:`, matchedSkills);
+    // Save the matched skills to the database permanently
+    const updatedStudent = await Student.findByIdAndUpdate(
+      studentId,
+      { skills: matchedSkills },
+      { new: true }
+    );
 
-    // 5. Send results back to frontend
+    if (!updatedStudent) {
+      return res.status(404).json({ success: false, message: "Student not found in database." });
+    }
+
+    console.log(`Algorithm found ${matchedSkills.length} skills and saved to DB.`);
+
     res.status(200).json({ 
       success: true, 
       message: `Analyzed! Found ${matchedSkills.length} skills.`,
-      skills: matchedSkills, 
+      skills: updatedStudent.skills, 
       preview: resumeText.substring(0, 150) + "..." 
     });
 
   } catch (error) {
-    console.error("🚨 Final Parsing Error Details:", error);
+    console.error("Final Parsing Error Details:", error);
     res.status(500).json({ success: false, message: "Failed to read the PDF document." });
   }
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`✅ Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });

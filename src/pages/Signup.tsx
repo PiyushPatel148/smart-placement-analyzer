@@ -9,6 +9,8 @@ const Signup = ({ onLogin }: SignupProps) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // Added state for graduation year
+  const [graduationYear, setGraduationYear] = useState(""); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -30,7 +32,8 @@ const Signup = ({ onLogin }: SignupProps) => {
           name,
           email,
           password,
-          graduationYear: 2026, 
+          //Send the actual graduation year from the form
+          graduationYear: Number(graduationYear), 
           skills: [] 
         }),
       });
@@ -41,6 +44,12 @@ const Signup = ({ onLogin }: SignupProps) => {
         // save the actual JWT token so they stay logged in
         localStorage.setItem("token", data.token);
         localStorage.setItem("userName", name);
+        
+        // Save the student's unique database ID
+        // We need this so the Resume Upload page works immediately for new users!
+        if (data.student && data.student.id) {
+          localStorage.setItem("studentId", data.student.id);
+        }
         
         onLogin();
         setSuccess("Account created! Logging you in...");
@@ -69,15 +78,22 @@ const Signup = ({ onLogin }: SignupProps) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium">Full Name</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Piyush Patel" required className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="John Doe" required className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="piyush@example.com" required className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
           </div>
+          
+          {/* Graduation Year Input Field */}
+          <div>
+            <label className="mb-1 block text-sm font-medium">Graduation Year</label>
+            <input type="number" value={graduationYear} onChange={(e) => setGraduationYear(e.target.value)} placeholder="2026" required min="2000" max="2030" className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+          </div>
+
           <div>
             <label className="mb-1 block text-sm font-medium">Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 6 characters" required className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 6 characters" required minLength={6} className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
           </div>
           <button type="submit" disabled={loading} className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity">
             {loading ? "Creating Account..." : "Sign Up"}

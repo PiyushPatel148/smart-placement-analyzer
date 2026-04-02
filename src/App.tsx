@@ -1,8 +1,8 @@
 /**
  * App.tsx — Main Application Component
- * * Sets up routing and manages simple auth state.
+ * Sets up routing and manages simple auth state.
  * The isLoggedIn state controls which pages users can access.
- * * ROUTING:
+ * ROUTING:
  * - /login and /signup are public pages
  * - /dashboard, /profile, /resume, /jobs are protected (require login)
  * - Unknown routes show 404 page
@@ -42,7 +42,12 @@ const App = () => {
 
   // Called when user clicks logout
   const handleLogout = () => {
+    // Clear ALL user data from browser memory on logout
     localStorage.removeItem("token");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("studentId");
+    localStorage.removeItem("userSkills");
+    
     setIsLoggedIn(false);
   };
 

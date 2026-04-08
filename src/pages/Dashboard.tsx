@@ -1,53 +1,109 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+// Define role-based skill targets for dynamic analysis
+const roleSkillMaps: Record<string, { title: string, skills: string[] }[]> = {
+  "Frontend Developer": [
+    { title: "Core Languages", skills: ["JavaScript", "TypeScript", "HTML", "CSS"] },
+    { title: "Frameworks", skills: ["React", "Vue", "Angular", "Next.js"] },
+    { title: "Tools", skills: ["Git", "Webpack", "Figma", "Tailwind"] }
+  ],
+  "Backend Developer": [
+    { title: "Languages", skills: ["Node.js", "Python", "Java", "C++", "C#"] },
+    { title: "Databases", skills: ["MongoDB", "SQL", "PostgreSQL", "Redis"] },
+    { title: "Infrastructure", skills: ["Express", "Docker", "AWS", "Git"] }
+  ],
+  "Data Analyst": [
+    { title: "Processing", skills: ["Python", "SQL", "R", "Excel"] },
+    { title: "Visualization", skills: ["Tableau", "PowerBI", "Matplotlib"] },
+    { title: "Math & Stats", skills: ["Machine Learning", "Data Analysis", "Statistics"] }
+  ],
+  "Software Engineer": [
+    { title: "Frontend", skills: ["React", "JavaScript", "HTML", "CSS"] },
+    { title: "Backend", skills: ["Node.js", "Python", "Java", "C++", "SQL"] },
+    { title: "DevOps & Tools", skills: ["Git", "Docker", "AWS", "Linux"] }
+  ]
+};
+
+// Fallback targets if the user hasn't selected a role yet
+const defaultCategories = [
+  { title: "Frontend", skills: ["React", "JavaScript", "HTML", "CSS"] },
+  { title: "Backend", skills: ["Node.js", "Python", "Java", "SQL"] },
+  { title: "Tools", skills: ["Git", "Docker", "AWS"] }
+];
+
 const Dashboard = () => {
   const [userName, setUserName] = useState("Student");
   const [mySkills, setMySkills] = useState<string[]>([]);
-  
-  // The core tech stack grouped by category for the Bar Graph
-  const skillCategories = [
-    { title: "Frontend", skills: ["React", "JavaScript", "HTML", "CSS", "TypeScript"] },
-    { title: "Backend", skills: ["Node.js", "Express", "Python", "Java", "C++"] },
-    { title: "Data & Tools", skills: ["MongoDB", "SQL", "Git", "Docker", "AWS"] }
-  ];
+  const [preferredRole, setPreferredRole] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  // Flatten the array to get all target skills for the master score
+  const studentId = localStorage.getItem("studentId");
+
+  // Fetch the latest profile data from the database on page load
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!studentId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`http://localhost:5000/api/students/${studentId}`);
+        const data = await response.json();
+        
+        if (response.ok && data.student) {
+          setUserName(data.student.name);
+          setMySkills(data.student.skills || []);
+          if (data.student.preferredRole) {
+            setPreferredRole(data.student.preferredRole);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch user data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [studentId]);
+
+  // Map the database data to the calculation logic
+  const skillCategories = roleSkillMaps[preferredRole] || roleSkillMaps["Software Engineer"] || defaultCategories;
   const targetSkills = skillCategories.flatMap(cat => cat.skills);
 
-  useEffect(() => {
-    const storedName = localStorage.getItem("userName");
-    if (storedName) setUserName(storedName);
-
-    const storedSkills = localStorage.getItem("userSkills");
-    if (storedSkills) {
-      setMySkills(JSON.parse(storedSkills));
-    }
-  }, []);
-
-  // Calculate master score
   const matchedSkills = mySkills.filter(skill => targetSkills.includes(skill));
   const missingSkills = targetSkills.filter(skill => !mySkills.includes(skill));
   const score = targetSkills.length > 0 ? Math.round((matchedSkills.length / targetSkills.length) * 100) : 0;
 
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto max-w-6xl px-4 py-12">
-      {/* Restored to max-w-6xl for that clean, focused layout */}
       
-      {/* Welcome Header */}
       <div className="mb-8 flex flex-col items-start justify-between gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-8 sm:flex-row sm:items-center">
         <div>
           <h1 className="mb-2 text-3xl font-bold text-foreground">Welcome back, {userName}!</h1>
-          <p className="text-muted-foreground">Here is your live Smart Placement Analysis.</p>
+          <p className="text-muted-foreground">
+            {preferredRole 
+              ? `Live Readiness Analysis for: ${preferredRole}` 
+              : "Set a Preferred Role in your profile for better analysis."}
+          </p>
         </div>
-        <Link to="/resume" className="whitespace-nowrap rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-sm transition-opacity hover:opacity-90">
-          Update Resume
+        <Link to="/profile" className="whitespace-nowrap rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-sm transition-opacity hover:opacity-90">
+          Edit Profile
         </Link>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         
-        {/* Left Column: Pie Chart (Readiness Score) */}
         <div className="col-span-1 flex flex-col items-center justify-center rounded-2xl border bg-card p-8 shadow-sm text-center h-full">
           <h2 className="mb-6 text-xl font-bold text-foreground">Readiness Score</h2>
           
@@ -64,20 +120,18 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {/* Right Column: The Bar Graphs & Lists */}
         <div className="col-span-1 lg:col-span-2 flex flex-col gap-6">
           
-          {/* THE BAR GRAPH SECTION */}
           <div className="rounded-2xl border bg-card p-8 shadow-sm">
             <h2 className="mb-6 text-xl font-bold text-foreground flex items-center gap-2">
-              <span>📈</span> Skill Distribution
+              Skill Distribution
             </h2>
             
             <div className="space-y-6">
               {skillCategories.map((category, index) => {
                 const catMatches = category.skills.filter(s => mySkills.includes(s)).length;
                 const catTotal = category.skills.length;
-                const catPercentage = Math.round((catMatches / catTotal) * 100);
+                const catPercentage = Math.round((catMatches / catTotal) * 100) || 0;
 
                 return (
                   <div key={index}>
@@ -85,9 +139,7 @@ const Dashboard = () => {
                       <span className="text-foreground">{category.title}</span>
                       <span className="text-muted-foreground">{catPercentage}%</span>
                     </div>
-                    {/* The Bar Background */}
                     <div className="h-4 w-full rounded-full bg-muted overflow-hidden">
-                      {/* The Filled Bar */}
                       <div 
                         className="h-full bg-primary transition-all duration-1000 ease-out rounded-full" 
                         style={{ width: `${catPercentage}%` }}
@@ -99,31 +151,29 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* The Detailed Skill Badges */}
           <div className="rounded-2xl border bg-card p-8 shadow-sm">
             <div className="grid gap-8 sm:grid-cols-2">
-              {/* Verified Skills */}
+              
               <div>
                 <h3 className="mb-4 text-sm font-bold text-green-600 flex items-center gap-2">
-                  <span>✅</span> Verified on Resume
+                  Verified Matches
                 </h3>
-                {mySkills.length > 0 ? (
+                {matchedSkills.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {mySkills.map((skill, index) => (
+                    {matchedSkills.map((skill, index) => (
                       <span key={index} className="rounded-lg bg-green-50 px-3 py-1.5 text-sm font-bold text-green-700 border border-green-200 shadow-sm">
                         {skill}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground italic">No skills detected yet.</p>
+                  <p className="text-sm text-muted-foreground italic">No required skills detected yet.</p>
                 )}
               </div>
 
-              {/* Missing Skills */}
               <div>
                 <h3 className="mb-4 text-sm font-bold text-destructive flex items-center gap-2">
-                  <span>🎯</span> Recommended to Learn
+                  Missing Requirements
                 </h3>
                 {missingSkills.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
@@ -134,9 +184,10 @@ const Dashboard = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm font-semibold text-green-600">You have all the core skills! 🎉</p>
+                  <p className="text-sm font-semibold text-green-600">You have all the core requirements!</p>
                 )}
               </div>
+              
             </div>
           </div>
 

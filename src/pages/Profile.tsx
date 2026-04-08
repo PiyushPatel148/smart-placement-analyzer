@@ -9,6 +9,9 @@ const Profile = () => {
   const [education, setEducation] = useState("");
   const [preferredRole, setPreferredRole] = useState("");
   
+  // State for the new experience level dropdown
+  const [experienceLevel, setExperienceLevel] = useState("entry level fresher");
+  
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [message, setMessage] = useState("");
@@ -38,6 +41,9 @@ const Profile = () => {
           setSkills(data.student.skills || []);
           setEducation(data.student.education || "");
           setPreferredRole(data.student.preferredRole || "");
+          
+          // Load saved experience level or fallback to default
+          setExperienceLevel(data.student.experienceLevel || "entry level fresher");
         }
       } catch (error) {
         console.error("Failed to load profile:", error);
@@ -81,7 +87,8 @@ const Profile = () => {
           skills, 
           graduationYear: Number(gradYear),
           education,
-          preferredRole
+          preferredRole,
+          experienceLevel // Send the selected experience level string
         }),
       });
 
@@ -171,6 +178,21 @@ const Profile = () => {
                 {jobRoles.map((role) => (
                   <option key={role} value={role}>{role}</option>
                 ))}
+              </select>
+            </div>
+
+            {/* New Experience Level Dropdown */}
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-sm font-semibold">Experience Level</label>
+              <select
+                value={experienceLevel}
+                onChange={(e) => setExperienceLevel(e.target.value)}
+                className="w-full rounded-xl border bg-background px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                <option value="entry level fresher">Fresher / 0 Years</option>
+                <option value="1-3 years junior">1 to 3 Years (Junior)</option>
+                <option value="3-5 years mid level">3 to 5 Years (Mid-Level)</option>
+                <option value="5+ years senior lead">5+ Years (Senior/Lead)</option>
               </select>
             </div>
           </div>

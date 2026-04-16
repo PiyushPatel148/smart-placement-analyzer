@@ -23,6 +23,7 @@ import Profile from "./pages/Profile";
 import ResumeUpload from "./pages/ResumeUpload";
 import Dashboard from "./pages/Dashboard";
 import Jobs from "./pages/Jobs";
+import JobDetails from "./pages/JobDetails";
 import NotFound from "./pages/NotFound";
 
 // Layout components
@@ -87,6 +88,10 @@ const App = () => {
               <Route
                 path="/jobs"
                 element={isLoggedIn ? <Jobs /> : <Navigate to="/login" />}
+              />
+              <Route
+                path="/jobs/:id"
+                element={isLoggedIn ? <JobDetails /> : <Navigate to="/login" />}
               />
 
               {/* 404 catch-all */}

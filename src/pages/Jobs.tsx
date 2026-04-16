@@ -7,20 +7,31 @@ const Jobs = () => {
   const [mySkills, setMySkills] = useState<string[]>([]);
   const [expLevel, setExpLevel] = useState("entry level fresher");
   
-  // State for the search bar input
+  // This state is ONLY used if the user is a Fresher
+  const [fresherJobType, setFresherJobType] = useState<"FULLTIME" | "INTERN">("FULLTIME");
+  
   const [searchInput, setSearchInput] = useState(""); 
   const [loading, setLoading] = useState(true);
 
   const studentId = localStorage.getItem("studentId");
 
-  // Initial load: Fetch student profile first, THEN fetch jobs
+  // Helper to determine the true API Job Type based on profile level
+  const getEffectiveJobType = (level: string, toggleState: "FULLTIME" | "INTERN"): "FULLTIME" | "INTERN" => {
+    const levelLower = level.toLowerCase();
+    if (levelLower.includes("pre-final") || levelLower.includes("intern")) return "INTERN";
+    if (levelLower.includes("fresher")) return toggleState;
+    return "FULLTIME"; // Junior, Mid, Senior
+  };
+
+  const isFresher = expLevel.toLowerCase().includes("fresher");
+  const activeJobType = getEffectiveJobType(expLevel, fresherJobType);
+
   useEffect(() => {
     const initData = async () => {
       let currentExp = "entry level fresher";
       let roleQuery = "Software Engineer";
 
       try {
-        // 1. Fetch user data from MongoDB
         if (studentId) {
           const response = await fetch(`http://localhost:5000/api/students/${studentId}`);
           const data = await response.json();
@@ -38,8 +49,8 @@ const Jobs = () => {
           }
         }
 
-        // 2. Fetch jobs from RapidAPI using the student's specific experience level
-        const jobResults = await getJobs(roleQuery, currentExp);
+        const initialType = getEffectiveJobType(currentExp, "FULLTIME");
+        const jobResults = await getJobs(roleQuery, initialType);
         setJobs(jobResults);
 
       } catch (err) {
@@ -52,14 +63,17 @@ const Jobs = () => {
     initData();
   }, [studentId]);
 
-  // Handle manual searches when the user submits the search bar
-  const handleApiSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Refetch if the Fresher toggle changes
+  useEffect(() => {
+    if (!loading && isFresher) {
+      handleJobFetch(searchInput || "Software Engineer", fresherJobType);
+    }
+  }, [fresherJobType]);
+
+  const handleJobFetch = async (query: string, type: "FULLTIME" | "INTERN") => {
     setLoading(true);
     try {
-      const query = searchInput.trim() || "Software Engineer";
-      // Fetch new jobs based on what the user typed, keeping their experience level intact
-      const jobResults = await getJobs(query, expLevel);
+      const jobResults = await getJobs(query, type);
       setJobs(jobResults);
     } catch (err) {
       console.error("Search failed:", err);
@@ -68,7 +82,11 @@ const Jobs = () => {
     }
   };
 
-  // Calculate match percentages for the UI
+  const handleApiSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleJobFetch(searchInput || "Software Engineer", activeJobType);
+  };
+
   const displayedJobs = jobs.map((job) => {
     const matched = job.skillsRequired.filter((s) => mySkills.includes(s));
     const missing = job.skillsRequired.filter((s) => !mySkills.includes(s));
@@ -79,130 +97,162 @@ const Jobs = () => {
     return { ...job, matchPercent, matched, missing };
   }).sort((a, b) => b.matchPercent - a.matchPercent); 
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center">
-        <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
-        <p className="text-muted-foreground font-medium text-lg">Scanning global networks for matches...</p>
-        <p className="text-xs text-muted-foreground mt-2">Applying '{expLevel}' filters</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-12">
+    <div className="container mx-auto max-w-6xl px-4 py-12 md:py-16">
       
-      <div className="mb-10 text-center">
-        <h1 className="mb-3 text-4xl font-extrabold text-foreground tracking-tight">Available Positions</h1>
-        <p className="text-lg text-muted-foreground">
-          Explore roles ranked by how well they match your resume profile.
+      <div className="mb-12 text-center">
+        <h1 className="mb-4 text-4xl md:text-5xl font-extrabold text-foreground tracking-tight">Available Positions</h1>
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          Explore roles ranked by how well they match your extracted resume profile.
         </p>
       </div>
 
-      {/* Upgraded Search Bar: Now triggers a real API call on submit */}
-      <div className="mb-12 max-w-2xl mx-auto">
-        <form onSubmit={handleApiSearch} className="relative group flex gap-2">
+      <div className="mb-14 max-w-3xl mx-auto">
+        <form onSubmit={handleApiSearch} className="relative flex flex-col sm:flex-row gap-3 mb-8">
           <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
-              <span className="text-xl">🔍</span>
-            </div>
             <input
               type="text"
               placeholder="Search by role, company, or tech stack..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full rounded-2xl border bg-card py-4 pl-12 pr-6 text-sm shadow-sm transition-all focus:ring-4 focus:ring-primary/10 focus:border-primary focus:outline-none"
+              className="w-full rounded-full border border-border bg-card py-4 px-8 text-base shadow-sm transition-all focus:ring-4 focus:ring-primary/20 focus:border-primary focus:outline-none placeholder:text-muted-foreground"
             />
           </div>
           <button 
             type="submit"
-            className="rounded-2xl bg-primary px-8 font-bold text-primary-foreground shadow-sm hover:opacity-90 transition-opacity active:scale-95"
+            className="rounded-full bg-primary px-10 py-4 font-bold text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 sm:w-auto w-full"
           >
             Search
           </button>
         </form>
-        <p className="text-center text-xs text-muted-foreground mt-3 font-medium uppercase tracking-wider">
-          Currently filtering for: <span className="text-primary">{expLevel}</span> roles
-        </p>
-      </div>
 
-      {mySkills.length === 0 && (
-        <div className="mb-10 rounded-2xl border-2 border-dashed border-yellow-200 bg-yellow-50/50 p-8 text-center">
-          <h3 className="text-lg font-bold text-yellow-800 mb-2">Enhance your search!</h3>
-          <p className="text-yellow-700 mb-5">Upload your resume to see your personalized Match Score for each job.</p>
-          <Link to="/resume" className="rounded-lg bg-yellow-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-yellow-700 shadow-md">
-            Upload Now
-          </Link>
-        </div>
-      )}
-
-      <div className="grid gap-6">
-        {displayedJobs.length > 0 ? (
-          displayedJobs.map((job) => (
-            <div
-              key={job.id}
-              className="group flex flex-col justify-between gap-6 rounded-2xl border bg-card p-6 shadow-sm transition-all hover:shadow-xl hover:-translate-y-1 md:flex-row md:items-center"
-            >
-              <div className="flex-1">
-                <div className="mb-3 flex items-center gap-3">
-                  {job.logo && (
-                    <img src={job.logo} alt={`${job.company} logo`} className="h-8 w-8 rounded-md object-contain bg-white" />
-                  )}
-                  <h3 className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors">
-                    {job.title}
-                  </h3>
-                  <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${
-                    job.type.toLowerCase().includes("intern") ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
-                  }`}>
-                    {job.type}
-                  </span>
-                </div>
-                <p className="mb-5 text-base font-medium text-muted-foreground flex items-center gap-2">
-                  <span>🏢</span> {job.company}
-                </p>
-
-                <div className="flex flex-wrap gap-2">
-                  {job.matched.map((skill) => (
-                    <span key={skill} className="rounded-lg bg-green-50 px-3 py-1.5 text-xs font-bold text-green-700 border border-green-200 shadow-sm">
-                      ✓ {skill}
-                    </span>
-                  ))}
-                  {job.missing.map((skill) => (
-                    <span key={skill} className="rounded-lg bg-secondary/50 px-3 py-1.5 text-xs font-medium text-muted-foreground border border-transparent">
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex shrink-0 flex-col items-start gap-4 border-t pt-5 md:items-end md:border-l md:border-t-0 md:pl-8 md:pt-0">
-                <div className="flex flex-col items-start md:items-end">
-                  <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Compatibility</span>
-                  <span className={`text-4xl font-black ${
-                    job.matchPercent >= 75 ? "text-green-600" : job.matchPercent >= 40 ? "text-yellow-600" : "text-destructive"
-                  }`}>
-                    {job.matchPercent}%
-                  </span>
-                </div>
-                <a 
-                  href={job.applyLink || "#"} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-full text-center rounded-xl bg-primary px-8 py-3 text-sm font-bold text-primary-foreground shadow-lg hover:opacity-90 active:scale-95 transition-all md:w-auto"
-                >
-                  Apply Now
-                </a>
-              </div>
+        {/* UI TOGGLE: Only shows if user is a Fresher */}
+        {isFresher && (
+          <div className="flex flex-col items-center justify-center gap-4">
+            <div className="inline-flex rounded-full bg-muted/50 p-1.5 border border-border shadow-inner">
+              <button
+                type="button"
+                onClick={() => setFresherJobType("FULLTIME")}
+                className={`rounded-full px-8 py-2.5 text-sm font-bold transition-all ${
+                  fresherJobType === "FULLTIME" 
+                    ? "bg-background text-foreground shadow border border-border/50" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Full-Time (FTE)
+              </button>
+              <button
+                type="button"
+                onClick={() => setFresherJobType("INTERN")}
+                className={`rounded-full px-8 py-2.5 text-sm font-bold transition-all ${
+                  fresherJobType === "INTERN" 
+                    ? "bg-purple-600 text-white shadow border border-purple-700" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Internships
+              </button>
             </div>
-          ))
-        ) : (
-          <div className="py-24 text-center rounded-3xl border-2 border-dashed bg-muted/20">
-            <span className="text-5xl mb-4 block">🔍</span>
-            <h3 className="text-xl font-bold text-foreground">No matches found</h3>
-            <p className="text-muted-foreground">Try modifying your search or experience level.</p>
           </div>
         )}
+
+        <div className="mt-6 text-center">
+          <span className="inline-flex items-center rounded-full border border-border bg-muted/50 px-4 py-1.5 text-xs font-semibold text-muted-foreground shadow-sm">
+            Targeting Profile Level: <span className="text-primary ml-1 capitalize">{expLevel}</span>
+          </span>
+        </div>
       </div>
+
+      {loading ? (
+        <div className="flex min-h-[40vh] flex-col items-center justify-center">
+          <div className="mb-6 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
+          <p className="text-foreground font-bold text-xl mb-2">Scanning global networks...</p>
+          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            Fetching {activeJobType === "INTERN" ? "Internships" : "Full-Time Roles"}
+          </p>
+        </div>
+      ) : (
+        <>
+          {mySkills.length === 0 && (
+            <div className="mb-12 rounded-3xl border border-amber-500/30 bg-amber-500/10 p-8 text-center flex flex-col items-center">
+              <div className="mb-3 text-3xl">⚠️</div>
+              <h3 className="text-xl font-bold text-amber-700 dark:text-amber-400 mb-2">Enhance your search!</h3>
+              <p className="text-amber-700/80 dark:text-amber-400/80 mb-6 max-w-md font-medium">Upload your resume to unlock personalized Match Scores and see exactly which skills you are missing for each job.</p>
+              <Link to="/resume" className="rounded-full bg-amber-600 px-8 py-3 text-sm font-bold text-white hover:bg-amber-700 shadow-md transition-all hover:-translate-y-0.5">
+                Upload Resume Now
+              </Link>
+            </div>
+          )}
+
+          <div className="grid gap-6">
+            {displayedJobs.length > 0 ? (
+              displayedJobs.map((job) => (
+                <div
+                  key={job.id}
+                  className="group flex flex-col justify-between gap-6 rounded-3xl border border-border bg-card p-6 md:p-8 shadow-sm transition-all hover:shadow-md hover:border-primary/30 md:flex-row md:items-center"
+                >
+                  <div className="flex-1">
+                    <div className="mb-4 flex flex-wrap items-center gap-3">
+                      {job.logo && (
+                        <img src={job.logo} alt={`${job.company} logo`} className="h-10 w-10 rounded-lg object-contain bg-white p-1 border border-border shadow-sm" />
+                      )}
+                      <Link to={`/jobs/${job.id}`}>
+                        <h3 className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors cursor-pointer tracking-tight">
+                          {job.title}
+                        </h3>
+                      </Link>
+                      <span className={`rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wider ${activeJobType === "INTERN" ? 'bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400' : 'bg-primary/10 border-primary/20 text-primary'}`}>
+                        {activeJobType === "INTERN" ? "Intern" : "Full-Time"}
+                      </span>
+                    </div>
+                    <p className="mb-6 text-base font-medium text-muted-foreground">
+                      <span className="text-foreground">Company:</span> {job.company}
+                    </p>
+
+                    <div className="flex flex-wrap gap-2">
+                      {job.matched.map((skill) => (
+                        <span key={skill} className="rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          ✓ {skill}
+                        </span>
+                      ))}
+                      {job.missing.map((skill) => (
+                        <span key={skill} className="rounded-lg bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground border border-border">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 flex-col items-start gap-4 border-t border-border pt-6 md:items-end md:border-l md:border-t-0 md:pl-8 md:pt-0">
+                    <div className="flex flex-col items-start md:items-end">
+                      <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Match Score</span>
+                      <span className={`text-5xl font-black tracking-tighter ${
+                        job.matchPercent >= 75 ? "text-emerald-500" : job.matchPercent >= 40 ? "text-amber-500" : "text-destructive"
+                      }`}>
+                        {job.matchPercent}%
+                      </span>
+                    </div>
+                    <a 
+                      href={job.applyLink || "#"} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="w-full text-center rounded-full bg-primary px-8 py-3 text-sm font-bold text-primary-foreground shadow-md hover:opacity-90 active:scale-95 transition-all md:w-auto"
+                    >
+                      Apply Now
+                    </a>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-24 text-center rounded-3xl border-2 border-dashed border-border bg-muted/20">
+                <h3 className="text-2xl font-bold text-foreground mb-2">No matches found</h3>
+                <p className="text-muted-foreground font-medium mb-4">Your API Key might be invalid or out of requests, or the search was too specific.</p>
+                <Link to="/profile" className="text-primary font-bold hover:underline">Check API Settings &rarr;</Link>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };

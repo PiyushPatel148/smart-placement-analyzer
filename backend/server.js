@@ -104,7 +104,7 @@ app.put('/api/students/:id', async (req, res) => {
     const updatedStudent = await Student.findByIdAndUpdate(
       req.params.id,
       { name, skills, graduationYear, education, preferredRole, experienceLevel },
-      { new: true } 
+      { returnDocument: 'after' } 
     );
 
     if (!updatedStudent) {
@@ -119,6 +119,41 @@ app.put('/api/students/:id', async (req, res) => {
   } catch (error) {
     console.error("Update profile error:", error);
     res.status(500).json({ success: false, message: "Server error updating profile" });
+  }
+});
+
+// --- SAVE OR UNSAVE A JOB ---
+app.post('/api/students/:id/save-job', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { jobId } = req.body;
+
+    const student = await Student.findById(id);
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
+    // Initialize array if it doesn't exist for older accounts
+    if (!student.savedJobs) {
+      student.savedJobs = [];
+    }
+
+    // Check if job is already saved
+    const isSaved = student.savedJobs.includes(jobId);
+
+    if (isSaved) {
+      // If already saved, remove it (Unsave)
+      student.savedJobs = student.savedJobs.filter(jid => jid !== jobId);
+    } else {
+      // Otherwise, add it
+      student.savedJobs.push(jobId);
+    }
+
+    await student.save();
+    res.json({ success: true, savedJobs: student.savedJobs });
+  } catch (error) {
+    console.error("Save job error:", error);
+    res.status(500).json({ success: false, message: "Error toggling saved job" });
   }
 });
 
@@ -164,7 +199,7 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
     const updatedStudent = await Student.findByIdAndUpdate(
       studentId,
       { skills: matchedSkills },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updatedStudent) {
@@ -186,12 +221,12 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
   }
 });
 
-// UPGRADED: FETCH REAL JOBS FROM JSEARCH (Bulletproof Version)
+// --- FETCH REAL JOBS FROM JSEARCH ---
 app.get('/api/jobs', async (req, res) => {
   try {
     const userQuery = req.query.query || 'Software Engineer';
     
-    // 1. Map the frontend dropdown strings to simple, API-friendly keywords
+    // Map the frontend dropdown strings to simple, API-friendly keywords
     const expLevel = req.query.exp || '';
     let searchKeywords = 'entry level fresher';
     
@@ -215,14 +250,14 @@ app.get('/api/jobs', async (req, res) => {
       }
     };
 
-    console.log(`🔍 Fetching jobs for: ${searchQuery}...`);
+    console.log(`Fetching jobs for: ${searchQuery}...`);
     const response = await axios.request(options);
     
-    // 2. Extract the data array. If the API returns nothing, we FORCE an error to trigger the failsafe.
+    // Extract the data array. If the API returns nothing, force an error to trigger the failsafe.
     const rawJobs = response.data.data || [];
     
     if (rawJobs.length === 0) {
-      console.log("⚠️ API returned 0 jobs. Forcing failsafe fallback data.");
+      console.log("API returned 0 jobs. Forcing failsafe fallback data.");
       throw new Error("Zero jobs returned from API"); 
     }
     
@@ -260,18 +295,18 @@ app.get('/api/jobs', async (req, res) => {
 
     const relevantJobs = cleanedJobs.filter(job => job.skillsRequired.length > 0);
 
-    // 3. If our dictionary filter killed all the jobs, just send the first 5 unfiltered ones anyway
+    // If our dictionary filter killed all the jobs, just send the first 5 unfiltered ones anyway
     if (relevantJobs.length === 0 && cleanedJobs.length > 0) {
-       console.log("⚠️ Filter was too strict. Returning un-filtered jobs so UI isn't blank.");
+       console.log("Filter was too strict. Returning un-filtered jobs so UI isn't blank.");
        return res.json(cleanedJobs.slice(0, 5)); 
     }
 
     res.json(relevantJobs);
 
   } catch (error) {
-    console.error("🚨 Triggering Fallback Failsafe:", error.message);
+    console.error("Triggering Fallback Failsafe:", error.message);
     
-    // THIS GUARANTEES YOUR UI WILL ALWAYS SHOW SOMETHING
+    // Failsafe response
     res.json([
       {
         id: "fallback-1",
@@ -295,6 +330,67 @@ app.get('/api/jobs', async (req, res) => {
         skillsRequired: ["Node.js", "Express", "MongoDB", "AWS"],
       }
     ]);
+  }
+});
+
+// --- FETCH SINGLE JOB DETAILS ---
+app.get('/api/jobs/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if it's one of our fallback dummy jobs
+    if (id.startsWith('fallback-')) {
+       const fallbacks = {
+         "fallback-1": { id: "fallback-1", title: "Frontend Developer (Fresher)", company: "TechCorp India", type: "Full-time", skillsRequired: ["React", "JavaScript", "HTML", "CSS"], description: "Join TechCorp as a junior developer building modern web interfaces. You will work closely with senior developers to translate Figma designs into robust React components.", location: "Bangalore, India", salary: "₹4,00,000 - ₹6,00,000" },
+         "fallback-2": { id: "fallback-2", title: "Data Analyst Intern", company: "DataMinds", type: "Internship", skillsRequired: ["Python", "SQL", "Excel"], description: "Help our data team analyze large datasets for business insights. You will write SQL queries, build dashboards in Excel, and automate scripts using Python.", location: "Remote", salary: "Stipend: ₹15,000/month" },
+         "fallback-3": { id: "fallback-3", title: "Backend Engineer (Entry Level)", company: "ServerPro India", type: "Full-time", skillsRequired: ["Node.js", "Express", "MongoDB", "AWS"], description: "Looking for an enthusiastic fresher to help scale our backend infrastructure. Experience with REST APIs and NoSQL databases is required.", location: "Pune, India", salary: "₹5,00,000 - ₹7,00,000" }
+       };
+       return res.json(fallbacks[id] || fallbacks["fallback-1"]);
+    }
+
+    const options = {
+      method: 'GET',
+      url: 'https://jsearch.p.rapidapi.com/job-details',
+      params: { job_id: id, extended_publisher_details: 'false' },
+      headers: {
+        'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
+        'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
+      }
+    };
+
+    const response = await axios.request(options);
+    const job = response.data.data[0];
+
+    if (!job) return res.status(404).json({ message: "Job not found" });
+
+    const techDictionary = [
+      "React", "Node.js", "Express", "MongoDB", "Python", "Java", 
+      "C++", "C", "C#", "Machine Learning", "Data Analysis", "SQL", "MySQL", 
+      "AWS", "Docker", "Git", "HTML", "CSS", "JavaScript", "TypeScript",
+      "Azure", "Google Cloud", "Excel", "Tableau", "Spring Boot", "Angular", "Vue"
+    ];
+    
+    // Combine text to find skills
+    const fullText = [job.job_description, ...(job.job_highlights?.Qualifications || [])].join(" ");
+    const skills = techDictionary.filter(skill => {
+      const regex = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      return regex.test(fullText);
+    });
+
+    res.json({
+      id: job.job_id,
+      title: job.job_title,
+      company: job.employer_name,
+      description: job.job_description,
+      skillsRequired: skills,
+      applyLink: job.job_apply_link,
+      location: (job.job_city || "") + (job.job_country ? ", " + job.job_country : "Remote"),
+      salary: job.job_min_salary ? `${job.job_min_salary} - ${job.job_max_salary}` : "Not Disclosed",
+      logo: job.employer_logo
+    });
+  } catch (error) {
+    console.error("Detail Fetch Error:", error.message);
+    res.status(500).json({ message: "Error fetching job details" });
   }
 });
 

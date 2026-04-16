@@ -1,148 +1,200 @@
-/**
- * Landing.tsx — Welcome / Landing Page
- * * The first page users see before logging in.
- * Provides an overview of what the app does with feature highlights.
- */
-
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
 
-// 1. Add this interface so the component knows about the prop
 interface LandingProps {
   isLoggedIn?: boolean;
 }
 
-// 2. Accept the prop in the component definition
+const testimonials = [
+  {
+    name: "Rahul S.",
+    role: "Frontend Developer",
+    review: "This platform completely changed my job hunt. The skill gap analysis told me exactly what I was missing before I even applied.",
+    initials: "RS",
+    color: "bg-blue-100 text-blue-700"
+  },
+  {
+    name: "Priya M.",
+    role: "Data Analyst",
+    review: "I loved seeing my match percentage instantly. It saved me so much time because I stopped applying to jobs I wasn't qualified for.",
+    initials: "PM",
+    color: "bg-purple-100 text-purple-700"
+  },
+  {
+    name: "Amit K.",
+    role: "Senior Software Engineer",
+    review: "The resume parser is incredibly accurate. It automatically built my profile and the dashboard keeps my saved jobs perfectly organized.",
+    initials: "AK",
+    color: "bg-green-100 text-green-700"
+  }
+];
+
+const features = [
+  {
+    icon: "📊",
+    title: "Skill Gap Analysis",
+    description: "Get a detailed breakdown of your matched and missing skills compared to live industry requirements.",
+  },
+  {
+    icon: "📄",
+    title: "Smart Resume Parsing",
+    description: "Upload your PDF and let our algorithm extract and evaluate your technical skills automatically.",
+  },
+  {
+    icon: "💼",
+    title: "Live Job Matching",
+    description: "Browse curated, real-time job listings that perfectly align with your specific experience level.",
+  },
+  {
+    icon: "🎯",
+    title: "Readiness Score",
+    description: "See exactly how placement-ready you are with a dynamic percentage score and improvement tips.",
+  },
+];
+
 const Landing = ({ isLoggedIn }: LandingProps) => {
-  // 3. State to hold the message from the Node.js backend
-  const [serverMessage, setServerMessage] = useState<string>("Pinging server...");
-
-  // 4. Fetch data from the backend when the page loads
-  useEffect(() => {
-    fetch("http://localhost:5000/api/test")
-      .then((res) => res.json())
-      .then((data) => {
-        setServerMessage(data.message); // Save the message!
-      })
-      .catch((err) => {
-        console.error(err);
-        setServerMessage("Backend is offline. Make sure it is running on port 5000!");
-      });
-  }, []);
-
-  // Features list displayed on the landing page
-  const features = [
-    {
-      icon: "📊",
-      title: "Skill Analysis",
-      description: "Get a detailed breakdown of your matched and missing skills for your dream job.",
-    },
-    {
-      icon: "📄",
-      title: "Resume Parsing",
-      description: "Upload your resume and let our system extract and evaluate your skills automatically.",
-    },
-    {
-      icon: "💼",
-      title: "Job Matching",
-      description: "Browse curated jobs and internships that align with your skill set and goals.",
-    },
-    {
-      icon: "🎯",
-      title: "Readiness Score",
-      description: "See how placement-ready you are with a clear percentage score and improvement tips.",
-    },
-  ];
-
   return (
-    <div className="flex flex-col">
-      {/* 5. Server Status Banner */}
-      <div className="w-full bg-accent/20 py-2 text-center text-sm font-medium text-accent-foreground border-b border-accent/30">
-        🔌 Backend Status: {serverMessage}
-      </div>
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-background to-muted/20 selection:bg-primary/20 transition-colors duration-300">
+      
+      <main className="flex-grow">
+        
+        <section className="relative overflow-hidden px-4 pt-12 pb-16 sm:pt-16 sm:pb-24 flex flex-col items-center text-center">
+          <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+          
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] opacity-20 blur-[100px] bg-gradient-to-b from-primary/50 to-transparent -z-10 rounded-full pointer-events-none"></div>
 
-      {/* Hero Section */}
-      <section className="flex flex-col items-center justify-center px-4 py-20 text-center">
-        <span className="mb-4 inline-block rounded-full bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary">
-          For Final-Year Students & Job Seekers
-        </span>
-        <h1 className="mb-4 max-w-2xl text-4xl font-extrabold leading-tight tracking-tight text-foreground md:text-5xl">
-          Smart Placement &<br />Skill Gap Analyzer
-        </h1>
-        <p className="mb-8 max-w-lg text-lg text-muted-foreground">
-          Understand your strengths, identify skill gaps, and find the right
-          jobs — all in one simple dashboard.
-        </p>
-
-        {/* SMART CTA Buttons */}
-        <div className="flex gap-3">
-          {isLoggedIn ? (
-            <Link
-              to="/dashboard"
-              className="rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground shadow-md hover:opacity-90 transition-opacity"
-            >
-              Go to Dashboard
-            </Link>
-          ) : (
-            <>
-              <Link
-                to="/signup"
-                className="rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-md hover:opacity-90 transition-opacity"
-              >
-                Get Started Free
-              </Link>
-              <Link
-                to="/login"
-                className="rounded-lg border border-border bg-card px-6 py-3 text-sm font-semibold text-foreground hover:bg-secondary transition-colors"
-              >
-                Sign In
-              </Link>
-            </>
-          )}
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="bg-secondary/50 px-4 py-16">
-        <div className="container mx-auto max-w-4xl">
-          <h2 className="mb-2 text-center text-2xl font-bold text-foreground">
-            How It Works
-          </h2>
-          <p className="mb-10 text-center text-muted-foreground">
-            Four simple steps to placement readiness
+          <div className="mb-8 inline-flex items-center rounded-full border border-border bg-card/60 px-3 py-1 text-sm font-medium text-muted-foreground backdrop-blur-sm shadow-sm transition-colors">
+            <span className="mr-2 flex h-2 w-2 rounded-full bg-primary animate-pulse"></span>
+            Built for Every Stage of Your Career
+          </div>
+          
+          <h1 className="mb-6 max-w-4xl text-5xl font-extrabold leading-[1.1] tracking-tight text-foreground sm:text-6xl md:text-7xl">
+            Stop searching in the dark. <br className="hidden sm:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-500">
+              Start matching smartly.
+            </span>
+          </h1>
+          
+          <p className="mb-10 max-w-2xl text-lg text-muted-foreground md:text-xl font-medium leading-relaxed">
+            Upload your resume, discover your exact skill gaps, and get instantly matched with verified job opportunities tailored to your unique profile and experience level.
           </p>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            {features.map((feature) => (
-              <div
-                key={feature.title}
-                className="rounded-xl border bg-card p-6 shadow-sm"
-              >
-                <p className="mb-3 text-3xl">{feature.icon}</p>
-                <h3 className="mb-1 text-lg font-semibold text-foreground">
-                  {feature.title}
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {feature.description}
-                </p>
-              </div>
-            ))}
+          <div className="flex flex-col sm:flex-row justify-center gap-4 w-full sm:w-auto px-4 z-10">
+            {isLoggedIn ? (
+              <Link to="/dashboard" className="w-full sm:w-auto rounded-full bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-[0_0_40px_-10px_rgba(37,99,235,0.5)] hover:shadow-[0_0_60px_-15px_rgba(37,99,235,0.7)] hover:-translate-y-0.5 transition-all">
+                Access Dashboard &rarr;
+              </Link>
+            ) : (
+              <>
+                <Link to="/signup" className="w-full sm:w-auto rounded-full bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-[0_0_40px_-10px_rgba(37,99,235,0.5)] hover:shadow-[0_0_60px_-15px_rgba(37,99,235,0.7)] hover:-translate-y-0.5 transition-all">
+                  Create Free Account
+                </Link>
+                <Link to="/login" className="w-full sm:w-auto rounded-full border border-border bg-card/50 backdrop-blur-sm px-8 py-4 text-base font-bold text-foreground shadow-sm hover:bg-muted transition-colors">
+                  Sign In
+                </Link>
+              </>
+            )}
+          </div>
+        </section>
+
+        <section className="bg-muted/10 py-16 md:py-20 border-y border-border transition-colors">
+          <div className="container mx-auto max-w-6xl px-4">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 tracking-tight">The Engine Behind Your Success</h2>
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">Everything you need to move from applicant to hired professional in one unified platform.</p>
+            </div>
+
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+              {features.map((feature) => (
+                <div key={feature.title} className="rounded-2xl border border-border bg-card p-8 shadow-sm transition-all hover:shadow-md hover:border-primary/40 group">
+                  <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-2xl group-hover:scale-110 transition-transform">
+                    {feature.icon}
+                  </div>
+                  <h3 className="mb-3 text-lg font-bold text-foreground">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed font-medium">
+                    {feature.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-muted/30 py-16 md:py-20 border-b border-border transition-colors">
+          <div className="container mx-auto max-w-6xl px-4">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 tracking-tight">Trusted by Job Seekers</h2>
+              <p className="text-muted-foreground text-lg">Join hundreds of professionals advancing their careers and landing dream roles.</p>
+            </div>
+            
+            <div className="grid gap-6 md:grid-cols-3">
+              {testimonials.map((t, idx) => (
+                <div key={idx} className="flex flex-col justify-between rounded-2xl border border-border bg-card p-8 shadow-sm hover:shadow-md transition-shadow">
+                  <p className="text-muted-foreground italic mb-8 leading-relaxed font-medium">"{t.review}"</p>
+                  <div className="flex items-center gap-4 mt-auto border-t border-border pt-6">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full font-bold shadow-sm ${t.color}`}>
+                      {t.initials}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-foreground text-sm">{t.name}</h4>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t.role}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {!isLoggedIn && (
+          <section className="px-4 py-16 md:py-20 text-center relative overflow-hidden bg-background transition-colors">
+            <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+            
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] opacity-[0.08] blur-[80px] bg-primary -z-10 rounded-full pointer-events-none"></div>
+
+            <div className="relative z-10">
+              <h2 className="mb-6 text-3xl md:text-4xl font-bold tracking-tight text-foreground">Ready to calculate your Readiness Score?</h2>
+              <p className="mb-8 text-muted-foreground max-w-xl mx-auto text-lg font-medium">Join today to upload your resume and get instant feedback on your industry readiness.</p>
+              <Link to="/signup" className="inline-block rounded-full bg-primary px-10 py-4 text-base font-bold text-primary-foreground shadow-[0_0_40px_-10px_rgba(37,99,235,0.4)] hover:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6)] hover:-translate-y-0.5 transition-all">
+                Get Started Now
+              </Link>
+            </div>
+          </section>
+        )}
+      </main>
+
+      <footer className="border-t border-border bg-muted/20 mt-auto transition-colors">
+        <div className="container mx-auto max-w-6xl px-4 py-10">
+          <div className="grid gap-8 md:grid-cols-4">
+            <div className="md:col-span-2">
+              <h3 className="text-2xl font-black text-foreground mb-4 tracking-tighter">SkillMatch<span className="text-primary">.</span></h3>
+              <p className="text-muted-foreground text-sm max-w-xs leading-relaxed font-medium">
+                Empowering job seekers and professionals to bridge the gap between their skills and industry requirements.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-bold text-foreground mb-4 tracking-wide uppercase text-xs">Platform</h4>
+              <ul className="space-y-3 text-sm font-medium text-muted-foreground">
+                <li><Link to="/jobs" className="hover:text-primary transition-colors">Browse Jobs</Link></li>
+                <li><Link to="/resume" className="hover:text-primary transition-colors">Resume Analyzer</Link></li>
+                <li><Link to="/dashboard" className="hover:text-primary transition-colors">Dashboard</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold text-foreground mb-4 tracking-wide uppercase text-xs">Legal</h4>
+              <ul className="space-y-3 text-sm font-medium text-muted-foreground">
+                <li><span className="hover:text-primary transition-colors cursor-pointer">Privacy Policy</span></li>
+                <li><span className="hover:text-primary transition-colors cursor-pointer">Terms of Service</span></li>
+                <li><span className="hover:text-primary transition-colors cursor-pointer">Contact Us</span></li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-10 border-t border-border pt-6 text-center text-sm font-medium text-muted-foreground">
+            <p>&copy; {new Date().getFullYear()} SkillMatch Engine. All rights reserved.</p>
           </div>
         </div>
-      </section>
-
-      {/* SMART Footer CTA */}
-      <section className="px-4 py-14 text-center">
-        <h2 className="mb-3 text-xl font-bold text-foreground">
-          {isLoggedIn ? "Ready to view your progress?" : "Ready to check your placement readiness?"}
-        </h2>
-        <Link
-          to={isLoggedIn ? "/dashboard" : "/signup"}
-          className="inline-block rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground shadow-md hover:opacity-90 transition-opacity"
-        >
-          {isLoggedIn ? "Go to Dashboard" : "Create Your Free Account"}
-        </Link>
-      </section>
+      </footer>
     </div>
   );
 };

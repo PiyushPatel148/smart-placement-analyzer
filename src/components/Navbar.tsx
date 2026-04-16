@@ -1,12 +1,6 @@
-/**
- * Navbar.tsx — Navigation Bar Component
- * * Displays the app name and navigation links.
- * Shows Login/Signup when logged out, and page links + Logout when logged in.
- */
 import { ModeToggle } from "./ModeToggle";
 import { Link, useNavigate } from "react-router-dom";
 
-// Props: isLoggedIn tells us whether to show auth links or app links
 interface NavbarProps {
   isLoggedIn: boolean;
   onLogout: () => void;
@@ -15,58 +9,70 @@ interface NavbarProps {
 const Navbar = ({ isLoggedIn, onLogout }: NavbarProps) => {
   const navigate = useNavigate();
 
-  // Handle logout: clear auth and go to login page
   const handleLogout = () => {
     onLogout();
     navigate("/login");
   };
 
   return (
-    <nav className="bg-primary text-primary-foreground shadow-md">
-      <div className="container mx-auto flex items-center justify-between px-4 py-3">
-        {/* App Name / Logo */}
-        <Link to="/" className="text-xl font-bold tracking-tight">
-          🎯 Smart Placement Analyzer
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background shadow-sm transition-colors duration-300">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+        
+        {/* Brand Logo */}
+        <Link to="/" className="flex items-center gap-2 text-xl font-black tracking-tighter text-foreground">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            🎯
+          </span>
+          SkillMatch<span className="text-primary">.</span>
         </Link>
 
-        {/* Navigation Links */}
-        <div className="flex items-center gap-1">
-          {isLoggedIn ? (
-            <>
-              {/* Show these links only when logged in */}
-              <NavItem to="/dashboard" label="Dashboard" />
-              <NavItem to="/profile" label="Profile" />
-              <NavItem to="/resume" label="Resume" />
-              <NavItem to="/jobs" label="Jobs" />
-              <button
-                onClick={handleLogout}
-                className="ml-2 rounded-md border border-primary-foreground/30 px-3 py-1.5 text-sm font-medium hover:bg-primary-foreground/10 transition-colors"
-              >
-                Logout
-              </button>
-            </>
-          ) : (
-            <>
-              {/* Show login/signup when not logged in */}
-              <NavItem to="/login" label="Login" />
-              <NavItem to="/signup" label="Sign Up" />
-            </>
-          )}
+        <div className="flex items-center gap-2">
+          {/* Navigation Links */}
+          <nav className="flex items-center gap-1">
+            {isLoggedIn ? (
+              <>
+                <NavItem to="/dashboard" label="Dashboard" />
+                <NavItem to="/jobs" label="Jobs" />
+                <NavItem to="/resume" label="Analyzer" />
+                <NavItem to="/profile" label="Profile" />
+                
+                <button
+                  onClick={handleLogout}
+                  className="ml-2 rounded-lg bg-muted px-4 py-2 text-sm font-bold text-muted-foreground hover:bg-destructive hover:text-destructive-foreground transition-all"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <NavItem to="/login" label="Login" />
+                <Link
+                  to="/signup"
+                  className="ml-2 rounded-lg bg-primary px-5 py-2 text-sm font-bold text-primary-foreground shadow-md hover:opacity-90 transition-all"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
+          </nav>
 
-          {/* Theme Toggle Button */}
-          <ModeToggle />
-
+          {/* THE FIX: We use [&_button] and [&_svg] to style the ModeToggle button directly.
+            - [&_button]:bg-muted adds a soft grey background so the button shape is visible.
+            - [&_svg]:text-foreground forces the Sun/Moon icon to be dark in light mode, light in dark mode.
+          */}
+          <div className="ml-3 border-l border-border pl-3 flex items-center [&_button]:bg-muted hover:[&_button]:bg-muted/80 [&_svg]:text-foreground">
+            <ModeToggle />
+          </div>
         </div>
       </div>
-    </nav>
+    </header>
   );
 };
 
-// Small reusable link component for navbar items
 const NavItem = ({ to, label }: { to: string; label: string }) => (
   <Link
     to={to}
-    className="rounded-md px-3 py-1.5 text-sm font-medium hover:bg-primary-foreground/10 transition-colors"
+    className="rounded-lg px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
   >
     {label}
   </Link>

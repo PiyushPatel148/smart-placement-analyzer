@@ -8,7 +8,6 @@ const ResumeUpload = () => {
 
   const navigate = useNavigate(); 
 
-  // Handle file selection and validation
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (selected && selected.type === "application/pdf") {
@@ -20,7 +19,6 @@ const ResumeUpload = () => {
     }
   };
 
-  // Handle file upload and analysis
   const handleUpload = async () => {
     if (!file) {
       setMessage("Please select a PDF file first.");
@@ -49,15 +47,12 @@ const ResumeUpload = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Use a standard success indicator word so the styling below triggers correctly
         setMessage("Resume analyzed successfully.");
         
-        // Update local storage with newly extracted skills
         if (data.skills) {
           localStorage.setItem("userSkills", JSON.stringify(data.skills));
         }
         
-        // Redirect to dashboard
         setTimeout(() => navigate("/dashboard"), 1500);
       } else {
         setMessage(data.message || "Upload failed.");
@@ -71,40 +66,41 @@ const ResumeUpload = () => {
   };
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-12">
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-foreground">Upload Resume</h1>
-        <p className="mt-2 text-muted-foreground text-lg">
-          Upload your PDF resume so we can analyze your skills.
+    <div className="container mx-auto max-w-2xl px-4 py-16 md:py-24">
+      <div className="mb-10 text-center">
+        <h1 className="text-4xl font-extrabold tracking-tight text-foreground mb-3">Upload Resume</h1>
+        <p className="text-muted-foreground text-lg max-w-lg mx-auto">
+          Upload your PDF resume so our engine can extract and analyze your technical skills.
         </p>
       </div>
 
-      <div className="rounded-2xl border bg-card p-8 shadow-sm">
-        {/* File Input Area */}
-        <div className="mb-6 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-primary/20 bg-primary/5 p-10 text-center transition-colors hover:bg-primary/10">
+      <div className="rounded-3xl border border-border bg-card p-8 md:p-10 shadow-sm transition-all">
+        
+        <div className="mb-8 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-muted/20 p-12 text-center transition-all hover:border-primary/50 hover:bg-primary/5">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-3xl text-primary">
+            📄
+          </div>
           <input
             type="file"
             accept="application/pdf"
             onChange={handleFileChange}
             className="mb-4 text-sm text-foreground file:mr-4 file:cursor-pointer file:rounded-full file:border-0 file:bg-primary file:px-6 file:py-2.5 file:text-sm file:font-semibold file:text-primary-foreground hover:file:opacity-90 cursor-pointer"
           />
-          <p className="text-sm font-medium text-muted-foreground">
-            {file ? <span className="text-primary">{file.name}</span> : "Only .pdf files up to 5MB"}
+          <p className="text-sm font-medium text-muted-foreground mt-2">
+            {file ? <span className="text-primary font-bold">{file.name}</span> : "Only .pdf files up to 5MB are supported"}
           </p>
         </div>
 
-        {/* Upload Button */}
         <button
           onClick={handleUpload}
           disabled={!file || loading}
-          className="w-full rounded-xl bg-primary px-4 py-3.5 font-bold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-full bg-primary px-4 py-4 text-base font-bold text-primary-foreground shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
         >
           {loading ? "Analyzing Document..." : "Upload & Analyze"}
         </button>
 
-        {/* Status Messages */}
         {message && (
-          <div className={`mt-6 rounded-xl p-4 text-sm font-semibold border ${message.includes("successfully") ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}`}>
+          <div className={`mt-6 rounded-xl p-4 text-sm font-semibold border ${message.includes("successfully") ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"}`}>
             {message}
           </div>
         )}

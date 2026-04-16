@@ -12,9 +12,9 @@ export interface Job {
 }
 
 export const getJobs = async (query: string, jobType: string): Promise<Job[]> => {
-  // Grab the user's custom API key, or use the working default fallback
+  // Grab the user's custom API key, or use the secure environment variable fallback
   const userApiKey = localStorage.getItem("rapidApiKey");
-  const DEFAULT_KEY = "d9bd985cdamsh434301089b98f3bp141b2fjsn6c3900ec0d5c"; 
+  const DEFAULT_KEY = import.meta.env.VITE_RAPIDAPI_KEY || ""; 
   const activeKey = userApiKey && userApiKey.trim() !== "" ? userApiKey : DEFAULT_KEY;
 
   // Format query to assist the RapidAPI engine
@@ -56,8 +56,9 @@ export const getJobs = async (query: string, jobType: string): Promise<Job[]> =>
 };
 
 export const getJobById = async (id: string): Promise<Job | null> => {
+  // Grab the user's custom API key, or use the secure environment variable fallback
   const userApiKey = localStorage.getItem("rapidApiKey");
-  const DEFAULT_KEY = "d9bd985cdamsh434301089b98f3bp141b2fjsn6c3900ec0d5c"; 
+  const DEFAULT_KEY = import.meta.env.VITE_RAPIDAPI_KEY || ""; 
   const activeKey = userApiKey && userApiKey.trim() !== "" ? userApiKey : DEFAULT_KEY;
 
   const url = `https://jsearch.p.rapidapi.com/job-details?job_id=${id}&extended_publisher_details=false`;

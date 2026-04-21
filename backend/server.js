@@ -13,6 +13,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 const Student = require('./Student'); 
 
 const app = express();
+
 // Allow both local React testing and live Vercel testing
 app.use(cors({
   origin: [
@@ -141,19 +142,15 @@ app.post('/api/students/:id/save-job', async (req, res) => {
       return res.status(404).json({ success: false, message: "Student not found" });
     }
 
-    // Initialize array if it doesn't exist for older accounts
     if (!student.savedJobs) {
       student.savedJobs = [];
     }
 
-    // Check if job is already saved
     const isSaved = student.savedJobs.includes(jobId);
 
     if (isSaved) {
-      // If already saved, remove it (Unsave)
       student.savedJobs = student.savedJobs.filter(jid => jid !== jobId);
     } else {
-      // Otherwise, add it
       student.savedJobs.push(jobId);
     }
 
@@ -165,7 +162,6 @@ app.post('/api/students/:id/save-job', async (req, res) => {
   }
 });
 
-// Helper function to extract text from PDF buffer
 const extractTextFromPDF = (buffer) => {
   return new Promise((resolve, reject) => {
     const pdfParser = new PDFParser(null, 1);
@@ -192,6 +188,11 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
     console.log("Extracting text using pdf2json...");
     const resumeText = await extractTextFromPDF(req.file.buffer);
     
+    // DEBUG LOGS FOR RENDER
+    console.log("--- START RAW RESUME TEXT ---");
+    console.log(resumeText.substring(0, 500)); 
+    console.log("--- END RAW RESUME TEXT ---");
+
     const techDictionary = [
       "React", "Node.js", "Express", "MongoDB", "Python", "Java", 
       "C++", "C", "Machine Learning", "Data Analysis", "SQL", "MySQL", 
@@ -200,7 +201,8 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
 
     const matchedSkills = techDictionary.filter(skill => {
       const escapedSkill = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`\\b${escapedSkill}\\b`, 'i');
+      // FIXED REGEX: Uses Lookarounds instead of \b for better symbol support
+      const regex = new RegExp(`(?<![a-zA-Z0-9])${escapedSkill}(?![a-zA-Z0-9])`, 'i');
       return regex.test(resumeText);
     });
 
@@ -233,8 +235,6 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
 app.get('/api/jobs', async (req, res) => {
   try {
     const userQuery = req.query.query || 'Software Engineer';
-    
-    // Map the frontend dropdown strings to simple, API-friendly keywords
     const expLevel = req.query.exp || '';
     let searchKeywords = 'entry level fresher';
     
@@ -247,11 +247,7 @@ app.get('/api/jobs', async (req, res) => {
     const options = {
       method: 'GET',
       url: 'https://jsearch.p.rapidapi.com/search',
-      params: {
-        query: searchQuery,
-        page: '1',
-        num_pages: '1'
-      },
+      params: { query: searchQuery, page: '1', num_pages: '1' },
       headers: {
         'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
         'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
@@ -260,8 +256,6 @@ app.get('/api/jobs', async (req, res) => {
 
     console.log(`Fetching jobs for: ${searchQuery}...`);
     const response = await axios.request(options);
-    
-    // Extract the data array. If the API returns nothing, force an error to trigger the failsafe.
     const rawJobs = response.data.data || [];
     
     if (rawJobs.length === 0) {
@@ -277,7 +271,6 @@ app.get('/api/jobs', async (req, res) => {
     ];
 
     const cleanedJobs = rawJobs.map(job => {
-      // Mash all text together to ensure we don't miss any skills
       const fullTextToSearch = [
         ...(job.job_highlights?.Qualifications || []),
         ...(job.job_highlights?.Responsibilities || []),
@@ -286,7 +279,8 @@ app.get('/api/jobs', async (req, res) => {
       
       const actualSkills = techDictionary.filter(skill => {
         const escapedSkill = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(`\\b${escapedSkill}\\b`, 'i');
+        // FIXED REGEX: Uses Lookarounds instead of \b
+        const regex = new RegExp(`(?<![a-zA-Z0-9])${escapedSkill}(?![a-zA-Z0-9])`, 'i');
         return regex.test(fullTextToSearch);
       });
       
@@ -303,9 +297,8 @@ app.get('/api/jobs', async (req, res) => {
 
     const relevantJobs = cleanedJobs.filter(job => job.skillsRequired.length > 0);
 
-    // If our dictionary filter killed all the jobs, just send the first 5 unfiltered ones anyway
     if (relevantJobs.length === 0 && cleanedJobs.length > 0) {
-       console.log("Filter was too strict. Returning un-filtered jobs so UI isn't blank.");
+       console.log("Filter was too strict. Returning un-filtered jobs.");
        return res.json(cleanedJobs.slice(0, 5)); 
     }
 
@@ -313,30 +306,10 @@ app.get('/api/jobs', async (req, res) => {
 
   } catch (error) {
     console.error("Triggering Fallback Failsafe:", error.message);
-    
-    // Failsafe response
     res.json([
-      {
-        id: "fallback-1",
-        title: "Frontend Developer (Fresher)",
-        company: "TechCorp India",
-        type: "Full-time",
-        skillsRequired: ["React", "JavaScript", "HTML", "CSS"],
-      },
-      {
-        id: "fallback-2",
-        title: "Data Analyst Intern",
-        company: "DataMinds",
-        type: "Internship",
-        skillsRequired: ["Python", "SQL", "Excel"],
-      },
-      {
-        id: "fallback-3",
-        title: "Backend Engineer (Entry Level)",
-        company: "ServerPro India",
-        type: "Full-time",
-        skillsRequired: ["Node.js", "Express", "MongoDB", "AWS"],
-      }
+      { id: "fallback-1", title: "Frontend Developer (Fresher)", company: "TechCorp India", type: "Full-time", skillsRequired: ["React", "JavaScript", "HTML", "CSS"] },
+      { id: "fallback-2", title: "Data Analyst Intern", company: "DataMinds", type: "Internship", skillsRequired: ["Python", "SQL", "Excel"] },
+      { id: "fallback-3", title: "Backend Engineer (Entry Level)", company: "ServerPro India", type: "Full-time", skillsRequired: ["Node.js", "Express", "MongoDB", "AWS"] }
     ]);
   }
 });
@@ -346,12 +319,11 @@ app.get('/api/jobs/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Check if it's one of our fallback dummy jobs
     if (id.startsWith('fallback-')) {
        const fallbacks = {
-         "fallback-1": { id: "fallback-1", title: "Frontend Developer (Fresher)", company: "TechCorp India", type: "Full-time", skillsRequired: ["React", "JavaScript", "HTML", "CSS"], description: "Join TechCorp as a junior developer building modern web interfaces. You will work closely with senior developers to translate Figma designs into robust React components.", location: "Bangalore, India", salary: "₹4,00,000 - ₹6,00,000" },
-         "fallback-2": { id: "fallback-2", title: "Data Analyst Intern", company: "DataMinds", type: "Internship", skillsRequired: ["Python", "SQL", "Excel"], description: "Help our data team analyze large datasets for business insights. You will write SQL queries, build dashboards in Excel, and automate scripts using Python.", location: "Remote", salary: "Stipend: ₹15,000/month" },
-         "fallback-3": { id: "fallback-3", title: "Backend Engineer (Entry Level)", company: "ServerPro India", type: "Full-time", skillsRequired: ["Node.js", "Express", "MongoDB", "AWS"], description: "Looking for an enthusiastic fresher to help scale our backend infrastructure. Experience with REST APIs and NoSQL databases is required.", location: "Pune, India", salary: "₹5,00,000 - ₹7,00,000" }
+         "fallback-1": { id: "fallback-1", title: "Frontend Developer (Fresher)", company: "TechCorp India", type: "Full-time", skillsRequired: ["React", "JavaScript", "HTML", "CSS"], description: "Join TechCorp building React components.", location: "Bangalore, India", salary: "₹4,00,000 - ₹6,00,000" },
+         "fallback-2": { id: "fallback-2", title: "Data Analyst Intern", company: "DataMinds", type: "Internship", skillsRequired: ["Python", "SQL", "Excel"], description: "Analyze datasets using SQL and Python.", location: "Remote", salary: "Stipend: ₹15,000/month" },
+         "fallback-3": { id: "fallback-3", title: "Backend Engineer (Entry Level)", company: "ServerPro India", type: "Full-time", skillsRequired: ["Node.js", "Express", "MongoDB", "AWS"], description: "Scale backend infrastructure using Node.js.", location: "Pune, India", salary: "₹5,00,000 - ₹7,00,000" }
        };
        return res.json(fallbacks[id] || fallbacks["fallback-1"]);
     }
@@ -378,10 +350,10 @@ app.get('/api/jobs/:id', async (req, res) => {
       "Azure", "Google Cloud", "Excel", "Tableau", "Spring Boot", "Angular", "Vue"
     ];
     
-    // Combine text to find skills
     const fullText = [job.job_description, ...(job.job_highlights?.Qualifications || [])].join(" ");
     const skills = techDictionary.filter(skill => {
-      const regex = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      // FIXED REGEX: Uses Lookarounds instead of \b
+      const regex = new RegExp(`(?<![a-zA-Z0-9])${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![a-zA-Z0-9])`, 'i');
       return regex.test(fullText);
     });
 

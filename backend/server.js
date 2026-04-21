@@ -4,23 +4,22 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
-require('dotenv').config(); 
-
 const multer = require('multer'); 
-const PDFParser = require("pdf2json"); 
+// 1. Switched to pdf-parse for better cloud stability
+const pdf = require('pdf-parse'); 
+require('dotenv').config(); 
 
 const upload = multer({ storage: multer.memoryStorage() });
 const Student = require('./Student'); 
 
 const app = express();
 
-// Allow both local React testing and live Vercel testing
 app.use(cors({
   origin: [
     'https://skillmatch-eight.vercel.app', 
     'http://localhost:8080',
-    'http://localhost:3000',  // standard React port
-    'http://localhost:5173'   // standard Vite port 
+    'http://localhost:3000',
+    'http://localhost:5173'
   ]
 }));
 app.use(express.json()); 
@@ -162,17 +161,6 @@ app.post('/api/students/:id/save-job', async (req, res) => {
   }
 });
 
-const extractTextFromPDF = (buffer) => {
-  return new Promise((resolve, reject) => {
-    const pdfParser = new PDFParser(null, 1);
-    pdfParser.on("pdfParser_dataError", errData => reject(errData.parserError));
-    pdfParser.on("pdfParser_dataReady", () => {
-      resolve(pdfParser.getRawTextContent());
-    });
-    pdfParser.parseBuffer(buffer);
-  });
-};
-
 // --- RESUME UPLOAD & ANALYSIS ROUTE ---
 app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
   try {
@@ -185,13 +173,12 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
       return res.status(400).json({ success: false, message: "Student ID is required." });
     }
 
-    console.log("Extracting text using pdf2json...");
-    const resumeText = await extractTextFromPDF(req.file.buffer);
+    // 2. NEW STABLE PARSING LOGIC
+    console.log("Extracting text using pdf-parse...");
+    const data = await pdf(req.file.buffer);
     
-    // DEBUG LOGS FOR RENDER
-    console.log("--- START RAW RESUME TEXT ---");
-    console.log(resumeText.substring(0, 500)); 
-    console.log("--- END RAW RESUME TEXT ---");
+    // Normalization: Remove hidden line breaks and weird whitespace
+    const cleanText = data.text.toLowerCase().replace(/\s+/g, ' ');
 
     const techDictionary = [
       "React", "Node.js", "Express", "MongoDB", "Python", "Java", 
@@ -199,11 +186,14 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
       "AWS", "Docker", "Git", "HTML", "CSS", "JavaScript", "TypeScript"
     ];
 
+    // 3. IMPROVED MATCHING
     const matchedSkills = techDictionary.filter(skill => {
-      const escapedSkill = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      // FIXED REGEX: Uses Lookarounds instead of \b for better symbol support
-      const regex = new RegExp(`(?<![a-zA-Z0-9])${escapedSkill}(?![a-zA-Z0-9])`, 'i');
-      return regex.test(resumeText);
+      const normalizedSkill = skill.toLowerCase();
+      const escapedSkill = normalizedSkill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      // Matches the skill as a standalone word (supports C++, Node.js, etc.)
+      const regex = new RegExp(`(?<![a-z0-9])${escapedSkill}(?![a-z0-9])`, 'i');
+      return regex.test(cleanText);
     });
 
     const updatedStudent = await Student.findByIdAndUpdate(
@@ -216,18 +206,17 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
       return res.status(404).json({ success: false, message: "Student not found in database." });
     }
 
-    console.log(`Algorithm found ${matchedSkills.length} skills and saved to DB.`);
+    console.log(`Success! Found ${matchedSkills.length} skills on Render.`);
 
     res.status(200).json({ 
       success: true, 
       message: `Analyzed! Found ${matchedSkills.length} skills.`,
-      skills: updatedStudent.skills, 
-      preview: resumeText.substring(0, 150) + "..." 
+      skills: updatedStudent.skills
     });
 
   } catch (error) {
-    console.error("Final Parsing Error Details:", error);
-    res.status(500).json({ success: false, message: "Failed to read the PDF document." });
+    console.error("Cloud Parsing Error:", error);
+    res.status(500).json({ success: false, message: "Failed to process resume on server." });
   }
 });
 
@@ -279,7 +268,6 @@ app.get('/api/jobs', async (req, res) => {
       
       const actualSkills = techDictionary.filter(skill => {
         const escapedSkill = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        // FIXED REGEX: Uses Lookarounds instead of \b
         const regex = new RegExp(`(?<![a-zA-Z0-9])${escapedSkill}(?![a-zA-Z0-9])`, 'i');
         return regex.test(fullTextToSearch);
       });
@@ -352,7 +340,6 @@ app.get('/api/jobs/:id', async (req, res) => {
     
     const fullText = [job.job_description, ...(job.job_highlights?.Qualifications || [])].join(" ");
     const skills = techDictionary.filter(skill => {
-      // FIXED REGEX: Uses Lookarounds instead of \b
       const regex = new RegExp(`(?<![a-zA-Z0-9])${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![a-zA-Z0-9])`, 'i');
       return regex.test(fullText);
     });

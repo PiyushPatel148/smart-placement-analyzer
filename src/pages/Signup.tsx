@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../services/api";
 
 interface SignupProps {
   onLogin: () => void;
@@ -9,7 +10,6 @@ const Signup = ({ onLogin }: SignupProps) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // Added state for graduation year
   const [graduationYear, setGraduationYear] = useState(""); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -24,15 +24,14 @@ const Signup = ({ onLogin }: SignupProps) => {
     setLoading(true);
 
     try {
-      // connecting to our local express server
-      const response = await fetch("http://localhost:5000/api/students", {
+      // Changed to use the dynamic Render API URL
+      const response = await fetch(`${API_BASE_URL}/api/students`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
           email,
           password,
-          //Send the actual graduation year from the form
           graduationYear: Number(graduationYear), 
           skills: [] 
         }),
@@ -41,12 +40,9 @@ const Signup = ({ onLogin }: SignupProps) => {
       const data = await response.json();
 
       if (response.ok) {
-        // save the actual JWT token so they stay logged in
         localStorage.setItem("token", data.token);
         localStorage.setItem("userName", name);
         
-        // Save the student's unique database ID
-        // We need this so the Resume Upload page works immediately for new users!
         if (data.student && data.student.id) {
           localStorage.setItem("studentId", data.student.id);
         }
@@ -55,7 +51,6 @@ const Signup = ({ onLogin }: SignupProps) => {
         setSuccess("Account created! Logging you in...");
         setTimeout(() => navigate("/"), 1500);
       } else {
-        // backend might say "Email already exists"
         setError(data.message || "Signup failed. Try a different email.");
       }
     } catch (err) {
@@ -84,13 +79,10 @@ const Signup = ({ onLogin }: SignupProps) => {
             <label className="mb-1 block text-sm font-medium">Email</label>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
           </div>
-          
-          {/* Graduation Year Input Field */}
           <div>
             <label className="mb-1 block text-sm font-medium">Graduation Year</label>
             <input type="number" value={graduationYear} onChange={(e) => setGraduationYear(e.target.value)} placeholder="2026" required min="2000" max="2030" className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
           </div>
-
           <div>
             <label className="mb-1 block text-sm font-medium">Password</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 6 characters" required minLength={6} className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />

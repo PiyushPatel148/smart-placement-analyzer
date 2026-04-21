@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../services/api";
 
 interface LoginProps {
   onLogin: () => void;
@@ -21,7 +22,8 @@ const Login = ({ onLogin }: LoginProps) => {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/login", {
+      // Changed to use the dynamic Render API URL
+      const response = await fetch(`${API_BASE_URL}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -30,18 +32,13 @@ const Login = ({ onLogin }: LoginProps) => {
       const data = await response.json();
 
       if (response.ok) {
-        // store the real token and name from MongoDB
         localStorage.setItem("token", data.token);
         localStorage.setItem("userName", data.student.name);
         
-        // Save the student's unique database ID
-        // We need this so the Resume Upload page knows who is saving skills!
         if (data.student.id) {
           localStorage.setItem("studentId", data.student.id);
         }
         
-        // Save existing skills from the database
-        // This makes sure the Dashboard charts load immediately upon login!
         if (data.student.skills) {
           localStorage.setItem("userSkills", JSON.stringify(data.student.skills));
         }
@@ -50,7 +47,6 @@ const Login = ({ onLogin }: LoginProps) => {
         setSuccess(`Welcome back, ${data.student.name}!`);
         setTimeout(() => navigate("/"), 1500);
       } else {
-        // catch "Incorrect password" or "User not found"
         setError(data.message || "Invalid credentials.");
       }
     } catch (err) {

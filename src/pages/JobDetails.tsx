@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getJobById, Job } from "../services/api";
+import { getJobById, Job, API_BASE_URL } from "../services/api";
 
 const JobDetails = () => {
   const { id } = useParams<{ id: string }>(); 
@@ -22,7 +22,8 @@ const JobDetails = () => {
         setJob(data);
 
         if (studentId) {
-          const userRes = await fetch(`http://localhost:5000/api/students/${studentId}`);
+          // REPLACED LOCALHOST
+          const userRes = await fetch(`${API_BASE_URL}/api/students/${studentId}`);
           const userData = await userRes.json();
           if (userData.student?.savedJobs?.includes(id)) {
             setIsSaved(true);
@@ -42,7 +43,8 @@ const JobDetails = () => {
   const handleSaveJob = async () => {
     if (!studentId || !id) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/students/${studentId}/save-job`, {
+      // REPLACED LOCALHOST
+      const res = await fetch(`${API_BASE_URL}/api/students/${studentId}/save-job`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jobId: id })
@@ -87,11 +89,8 @@ const JobDetails = () => {
       </Link>
 
       <div className="rounded-2xl border bg-card p-8 shadow-sm">
-        
-        {/* Updated Layout Section */}
         <div className="flex flex-col md:flex-row items-start justify-between gap-6 mb-8 border-b pb-8">
           
-          {/* Left Side: Job Info */}
           <div className="flex-1 w-full pr-0 md:pr-4">
             <div className="flex items-center gap-4 mb-4">
               {job.logo && <img src={job.logo} alt="logo" className="h-12 w-12 rounded-lg bg-white object-contain" />}
@@ -105,7 +104,6 @@ const JobDetails = () => {
             </div>
           </div>
 
-          {/* Right Side: Match Box & Buttons */}
           <div className="flex flex-col items-center gap-3 bg-muted/20 p-6 rounded-xl border border-muted w-full md:w-72 shrink-0">
             <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Your Match</span>
             <span className={`text-5xl font-black mb-2 ${matchPercent >= 75 ? "text-green-600" : matchPercent >= 40 ? "text-yellow-600" : "text-destructive"}`}>

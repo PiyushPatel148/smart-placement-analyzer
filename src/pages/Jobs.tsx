@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { getJobs, Job } from "../services/api";
+import { getJobs, Job, API_BASE_URL } from "../services/api";
 
 const Jobs = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [mySkills, setMySkills] = useState<string[]>([]);
   const [expLevel, setExpLevel] = useState("entry level fresher");
   
-  // This state is ONLY used if the user is a Fresher
   const [fresherJobType, setFresherJobType] = useState<"FULLTIME" | "INTERN">("FULLTIME");
   
   const [searchInput, setSearchInput] = useState(""); 
@@ -15,12 +14,11 @@ const Jobs = () => {
 
   const studentId = localStorage.getItem("studentId");
 
-  // Helper to determine the true API Job Type based on profile level
   const getEffectiveJobType = (level: string, toggleState: "FULLTIME" | "INTERN"): "FULLTIME" | "INTERN" => {
     const levelLower = level.toLowerCase();
     if (levelLower.includes("pre-final") || levelLower.includes("intern")) return "INTERN";
     if (levelLower.includes("fresher")) return toggleState;
-    return "FULLTIME"; // Junior, Mid, Senior
+    return "FULLTIME"; 
   };
 
   const isFresher = expLevel.toLowerCase().includes("fresher");
@@ -33,7 +31,8 @@ const Jobs = () => {
 
       try {
         if (studentId) {
-          const response = await fetch(`http://localhost:5000/api/students/${studentId}`);
+          // FIXED: Changed localhost:5000 to ${API_BASE_URL}
+          const response = await fetch(`${API_BASE_URL}/api/students/${studentId}`);
           const data = await response.json();
           
           if (response.ok && data.student) {
@@ -62,13 +61,6 @@ const Jobs = () => {
     
     initData();
   }, [studentId]);
-
-  // Refetch if the Fresher toggle changes
-  useEffect(() => {
-    if (!loading && isFresher) {
-      handleJobFetch(searchInput || "Software Engineer", fresherJobType);
-    }
-  }, [fresherJobType]);
 
   const handleJobFetch = async (query: string, type: "FULLTIME" | "INTERN") => {
     setLoading(true);
@@ -126,7 +118,6 @@ const Jobs = () => {
           </button>
         </form>
 
-        {/* UI TOGGLE: Only shows if user is a Fresher */}
         {isFresher && (
           <div className="flex flex-col items-center justify-center gap-4">
             <div className="inline-flex rounded-full bg-muted/50 p-1.5 border border-border shadow-inner">

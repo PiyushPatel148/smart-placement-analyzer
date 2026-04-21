@@ -1,7 +1,6 @@
-// IMPORTANT: When your backend goes live on Render, change this to your Render URL!
-// Example: export const API_BASE_URL = "https://skillmatch-api.onrender.com";
-export const API_BASE_URL = "http://localhost:5000";
 
+//export const API_BASE_URL = "http://localhost:5000";
+export const API_BASE_URL = "https://skillmatch-backend-zloc.onrender.com";
 export interface Job {
   id: string;
   title: string;

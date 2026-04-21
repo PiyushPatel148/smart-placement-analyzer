@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom"; 
+// Import the base URL so it dynamically uses the Render link!
+import { API_BASE_URL } from "../services/api"; 
 
 const ResumeUpload = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -39,7 +41,8 @@ const ResumeUpload = () => {
     formData.append("studentId", studentId);
 
     try {
-      const response = await fetch("http://localhost:5000/api/upload-resume", {
+      // Changed from localhost:5000 to use your dynamic API variable!
+      const response = await fetch(`${API_BASE_URL}/api/upload-resume`, {
         method: "POST",
         body: formData, 
       });

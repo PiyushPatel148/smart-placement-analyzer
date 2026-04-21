@@ -1,3 +1,7 @@
+// IMPORTANT: When your backend goes live on Render, change this to your Render URL!
+// Example: export const API_BASE_URL = "https://skillmatch-api.onrender.com";
+export const API_BASE_URL = "http://localhost:5000";
+
 export interface Job {
   id: string;
   title: string;
@@ -12,85 +16,39 @@ export interface Job {
 }
 
 export const getJobs = async (query: string, jobType: string): Promise<Job[]> => {
-  // Grab the user's custom API key, or use the secure environment variable fallback
-  const userApiKey = localStorage.getItem("rapidApiKey");
-  const DEFAULT_KEY = import.meta.env.VITE_RAPIDAPI_KEY || ""; 
-  const activeKey = userApiKey && userApiKey.trim() !== "" ? userApiKey : DEFAULT_KEY;
-
-  // Format query to assist the RapidAPI engine
-  const searchQuery = jobType === "INTERN" ? `${query} Intern` : query;
-
-  // Force the API to only return the exact employment type requested
-  const url = `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(searchQuery)}&employment_types=${jobType}&page=1&num_pages=1`;
-
-  const options = {
-    method: 'GET',
-    headers: {
-      'X-RapidAPI-Key': activeKey,
-      'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
-    }
-  };
+  // Map frontend job type to the keywords your backend expects
+  const expLevel = jobType === "INTERN" ? "fresher intern" : "fresher";
+  
+  // Call your Node.js backend instead of calling RapidAPI directly
+  const url = `${API_BASE_URL}/api/jobs?query=${encodeURIComponent(query)}&exp=${encodeURIComponent(expLevel)}`;
 
   try {
-    const response = await fetch(url, options);
-    const result = await response.json();
-
-    if (!result.data) return [];
-
-    return result.data.map((job: any) => ({
-      id: job.job_id,
-      title: job.job_title,
-      company: job.employer_name,
-      location: `${job.job_city || ''}, ${job.job_state || ''}`.replace(/^, | , $/g, '') || 'Remote',
-      type: job.job_employment_type,
-      salary: job.job_min_salary ? `$${job.job_min_salary} - $${job.job_max_salary}` : 'Not Disclosed',
-      description: job.job_description,
-      skillsRequired: ["React", "JavaScript", "Python", "SQL", "Git", "Node.js"].filter(() => Math.random() > 0.5), 
-      applyLink: job.job_apply_link,
-      logo: job.employer_logo
-    }));
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data; // Your backend already formats the jobs perfectly
   } catch (error) {
-    console.error("Error fetching jobs from RapidAPI:", error);
+    console.error("Error fetching jobs from Backend:", error);
     return [];
   }
 };
 
 export const getJobById = async (id: string): Promise<Job | null> => {
-  // Grab the user's custom API key, or use the secure environment variable fallback
-  const userApiKey = localStorage.getItem("rapidApiKey");
-  const DEFAULT_KEY = import.meta.env.VITE_RAPIDAPI_KEY || ""; 
-  const activeKey = userApiKey && userApiKey.trim() !== "" ? userApiKey : DEFAULT_KEY;
-
-  const url = `https://jsearch.p.rapidapi.com/job-details?job_id=${id}&extended_publisher_details=false`;
-
-  const options = {
-    method: 'GET',
-    headers: {
-      'X-RapidAPI-Key': activeKey,
-      'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
-    }
-  };
+  const url = `${API_BASE_URL}/api/jobs/${id}`;
 
   try {
-    const response = await fetch(url, options);
-    const result = await response.json();
-
-    if (!result.data || result.data.length === 0) return null;
-
-    const job = result.data[0];
-
-    return {
-      id: job.job_id,
-      title: job.job_title,
-      company: job.employer_name,
-      location: `${job.job_city || ''}, ${job.job_state || ''}`.replace(/^, | , $/g, '') || 'Remote',
-      type: job.job_employment_type,
-      salary: job.job_min_salary ? `$${job.job_min_salary} - $${job.job_max_salary}` : 'Not Disclosed',
-      description: job.job_description,
-      skillsRequired: ["React", "JavaScript", "Python", "SQL", "Git", "Node.js"].filter(() => Math.random() > 0.5), 
-      applyLink: job.job_apply_link,
-      logo: job.employer_logo
-    };
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+       throw new Error(`Backend error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
   } catch (error) {
     console.error(`Error fetching job details for ID ${id}:`, error);
     return null;

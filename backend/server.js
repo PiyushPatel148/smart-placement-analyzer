@@ -13,8 +13,14 @@ const upload = multer({ storage: multer.memoryStorage() });
 const Student = require('./Student'); 
 
 const app = express();
+// Allow both local React testing and live Vercel testing
 app.use(cors({
-  origin: 'https://skillmatch-eight.vercel.app' 
+  origin: [
+    'https://skillmatch-eight.vercel.app', 
+    'http://localhost:8080',
+    'http://localhost:3000',  // standard React port
+    'http://localhost:5173'   // standard Vite port 
+  ]
 }));
 app.use(express.json()); 
 

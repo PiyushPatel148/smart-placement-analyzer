@@ -111,7 +111,7 @@ app.put('/api/students/:id', async (req, res) => {
     const updatedStudent = await Student.findByIdAndUpdate(
       req.params.id,
       { name, skills, graduationYear, education, preferredRole, experienceLevel },
-      { new: true } // FIXED: Mongoose will now return the newly updated document!
+      { returnDocument: 'after' }
     );
 
     if (!updatedStudent) {

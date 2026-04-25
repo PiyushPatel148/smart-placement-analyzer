@@ -5,8 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const multer = require('multer'); 
-// 1. Switched to pdf-parse for better cloud stability
-const pdf = require('pdf-parse'); 
+const PDFParser = require("pdf2json"); // Back to the reliable parser!
 require('dotenv').config(); 
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -161,6 +160,18 @@ app.post('/api/students/:id/save-job', async (req, res) => {
   }
 });
 
+// Helper function to extract text from PDF buffer using pdf2json
+const extractTextFromPDF = (buffer) => {
+  return new Promise((resolve, reject) => {
+    const pdfParser = new PDFParser(null, 1);
+    pdfParser.on("pdfParser_dataError", errData => reject(errData.parserError));
+    pdfParser.on("pdfParser_dataReady", () => {
+      resolve(pdfParser.getRawTextContent());
+    });
+    pdfParser.parseBuffer(buffer);
+  });
+};
+
 // --- RESUME UPLOAD & ANALYSIS ROUTE ---
 app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
   try {
@@ -173,20 +184,27 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
       return res.status(400).json({ success: false, message: "Student ID is required." });
     }
 
-    console.log("Extracting text using pdf-parse...");
-    const data = await pdf(req.file.buffer);
+    console.log("Extracting text using pdf2json...");
+    let rawText = await extractTextFromPDF(req.file.buffer);
     
-    // --- ADDED SAFETY CHECK ---
-    // If the PDF has no readable text, this prevents the server from crashing
-    const rawText = data && data.text ? data.text : "";
-    
-    if (!rawText.trim()) {
+    // Safety check
+    if (!rawText || !rawText.trim()) {
        console.log("Warning: No text could be extracted from this PDF.");
-       return res.status(422).json({ success: false, message: "Could not extract text from PDF. Is it a scanned image?" });
+       return res.status(422).json({ success: false, message: "Could not extract text from PDF." });
     }
 
-    // Normalization: Remove hidden line breaks and weird whitespace
+    // Sometimes pdf2json outputs URL-encoded strings, try to decode it safely
+    try {
+      rawText = decodeURIComponent(rawText);
+    } catch (e) {
+      // Ignore if not encoded
+    }
+
+    // NORMALIZATION: Clean up weird spacing and make it lowercase
     const cleanText = rawText.toLowerCase().replace(/\s+/g, ' ');
+
+    console.log("--- CLEAN TEXT PREVIEW ---");
+    console.log(cleanText.substring(0, 300));
 
     const techDictionary = [
       "React", "Node.js", "Express", "MongoDB", "Python", "Java", 
@@ -194,12 +212,12 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
       "AWS", "Docker", "Git", "HTML", "CSS", "JavaScript", "TypeScript"
     ];
 
-    // 3. IMPROVED MATCHING
+    // MATCHING WITH SAFE REGEX
     const matchedSkills = techDictionary.filter(skill => {
       const normalizedSkill = skill.toLowerCase();
       const escapedSkill = normalizedSkill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       
-      // Matches the skill as a standalone word (supports C++, Node.js, etc.)
+      // Lookarounds ensure we match "c++" without grabbing "c" from the middle of another word
       const regex = new RegExp(`(?<![a-z0-9])${escapedSkill}(?![a-z0-9])`, 'i');
       return regex.test(cleanText);
     });
@@ -223,7 +241,6 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
     });
 
   } catch (error) {
-    // Improved error logging to print the exact error message to Render
     console.error("Cloud Parsing Error:", error.message || error);
     res.status(500).json({ success: false, message: "Failed to process resume on server." });
   }
@@ -295,7 +312,6 @@ app.get('/api/jobs', async (req, res) => {
     const relevantJobs = cleanedJobs.filter(job => job.skillsRequired.length > 0);
 
     if (relevantJobs.length === 0 && cleanedJobs.length > 0) {
-       console.log("Filter was too strict. Returning un-filtered jobs.");
        return res.json(cleanedJobs.slice(0, 5)); 
     }
 

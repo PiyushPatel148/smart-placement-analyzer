@@ -50,7 +50,6 @@ const Dashboard = () => {
       }
 
       try {
-        // REPLACED LOCALHOST
         const response = await fetch(`${API_BASE_URL}/api/students/${studentId}`);
         const data = await response.json();
         
@@ -87,7 +86,6 @@ const Dashboard = () => {
     if (!studentId) return;
 
     try {
-      // REPLACED LOCALHOST
       const res = await fetch(`${API_BASE_URL}/api/students/${studentId}/save-job`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -163,4 +161,93 @@ const Dashboard = () => {
                       <span className="text-foreground">{category.title}</span>
                       <span className="text-muted-foreground">{catPercentage}%</span>
                     </div>
-                    <div className="h-4
+                    <div className="h-4 w-full rounded-full bg-muted overflow-hidden">
+                      <div 
+                        className="h-full bg-primary transition-all duration-1000 ease-out rounded-full" 
+                        style={{ width: `${catPercentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border bg-card p-8 shadow-sm">
+            <div className="grid gap-8 sm:grid-cols-2">
+              <div>
+                <h3 className="mb-4 text-sm font-bold text-green-600 flex items-center gap-2">Verified Matches</h3>
+                <div className="flex flex-wrap gap-2">
+                  {matchedSkills.map((skill, index) => (
+                    <span key={index} className="rounded-lg bg-green-50 px-3 py-1.5 text-sm font-bold text-green-700 border border-green-200 shadow-sm">{skill}</span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3 className="mb-4 text-sm font-bold text-destructive flex items-center gap-2">Missing Requirements</h3>
+                <div className="flex flex-wrap gap-2">
+                  {missingSkills.map((skill, index) => (
+                    <span key={index} className="rounded-lg bg-destructive/10 px-3 py-1.5 text-sm font-bold text-destructive border border-destructive/20 shadow-sm">{skill}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8 rounded-2xl border bg-card p-8 shadow-sm">
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-foreground">Saved for Later</h2>
+          <Link to="/jobs" className="text-sm font-bold text-primary hover:underline">Find more jobs &rarr;</Link>
+        </div>
+
+        {savedJobs.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {savedJobs.map((job) => (
+              <Link 
+                key={job.id} 
+                to={`/jobs/${job.id}`} 
+                className="group relative block rounded-xl border bg-background p-5 transition-all hover:border-primary hover:shadow-md"
+              >
+                <button
+                  onClick={(e) => handleRemoveJob(e, job.id)}
+                  className="absolute right-3 top-3 z-10 rounded-full bg-muted p-1.5 text-muted-foreground transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                  title="Remove from saved"
+                >
+                  <span className="text-xs font-bold px-1">Remove</span>
+                </button>
+
+                <div className="flex items-center gap-3 mb-3 pr-16">
+                  {job.logo ? (
+                    <img src={job.logo} alt="logo" className="h-8 w-8 rounded-md object-contain bg-white" />
+                  ) : (
+                    <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
+                      {job.company.charAt(0)}
+                    </div>
+                  )}
+                  <h3 className="font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1 truncate w-full">
+                    {job.title}
+                  </h3>
+                </div>
+                <p className="text-sm font-medium text-muted-foreground truncate">{job.company}</p>
+                <div className="mt-4 flex items-center justify-between border-t pt-4">
+                  <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded-md">{job.type}</span>
+                  <span className="text-xs font-bold text-primary uppercase tracking-wider">View &rarr;</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed p-10 text-center bg-muted/10">
+            <h3 className="mb-2 text-lg font-bold">No saved jobs yet</h3>
+            <p className="text-muted-foreground mb-6 max-w-sm mx-auto">Track your interested roles here once you save them.</p>
+            <Link to="/jobs" className="rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90">Browse Open Roles</Link>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;

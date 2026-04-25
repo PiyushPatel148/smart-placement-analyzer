@@ -173,12 +173,20 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
       return res.status(400).json({ success: false, message: "Student ID is required." });
     }
 
-    // 2. NEW STABLE PARSING LOGIC
     console.log("Extracting text using pdf-parse...");
     const data = await pdf(req.file.buffer);
     
+    // --- ADDED SAFETY CHECK ---
+    // If the PDF has no readable text, this prevents the server from crashing
+    const rawText = data && data.text ? data.text : "";
+    
+    if (!rawText.trim()) {
+       console.log("Warning: No text could be extracted from this PDF.");
+       return res.status(422).json({ success: false, message: "Could not extract text from PDF. Is it a scanned image?" });
+    }
+
     // Normalization: Remove hidden line breaks and weird whitespace
-    const cleanText = data.text.toLowerCase().replace(/\s+/g, ' ');
+    const cleanText = rawText.toLowerCase().replace(/\s+/g, ' ');
 
     const techDictionary = [
       "React", "Node.js", "Express", "MongoDB", "Python", "Java", 
@@ -215,7 +223,8 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Cloud Parsing Error:", error);
+    // Improved error logging to print the exact error message to Render
+    console.error("Cloud Parsing Error:", error.message || error);
     res.status(500).json({ success: false, message: "Failed to process resume on server." });
   }
 });

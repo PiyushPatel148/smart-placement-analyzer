@@ -143,7 +143,6 @@ const Profile = () => {
         )}
 
         <form onSubmit={handleSave} className="space-y-10">
-          // Section 1: Personal & Academic 
           <div>
             <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
               <span className="h-6 w-1.5 rounded-full bg-primary"></span>
@@ -215,7 +214,6 @@ const Profile = () => {
             </div>
           </div>
 
-          // Skills Section
           <div>
             <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
               <span className="h-6 w-1.5 rounded-full bg-primary"></span>

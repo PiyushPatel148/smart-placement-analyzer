@@ -1,6 +1,5 @@
-
-//export const API_BASE_URL = "http://localhost:5000";
 export const API_BASE_URL = "https://skillmatch-backend-zloc.onrender.com";
+
 export interface Job {
   id: string;
   title: string;
@@ -14,12 +13,9 @@ export interface Job {
   logo?: string;
 }
 
-export const getJobs = async (query: string, jobType: string): Promise<Job[]> => {
-  // Map frontend job type to the keywords your backend expects
-  const expLevel = jobType === "INTERN" ? "fresher intern" : "fresher";
-  
-  // Call your Node.js backend instead of calling RapidAPI directly
-  const url = `${API_BASE_URL}/api/jobs?query=${encodeURIComponent(query)}&exp=${encodeURIComponent(expLevel)}`;
+export const getJobs = async (query: string, targetExp: string): Promise<Job[]> => {
+  // Pass the real experience level directly to the backend
+  const url = `${API_BASE_URL}/api/jobs?query=${encodeURIComponent(query)}&exp=${encodeURIComponent(targetExp)}`;
 
   try {
     const response = await fetch(url);
@@ -29,7 +25,7 @@ export const getJobs = async (query: string, jobType: string): Promise<Job[]> =>
     }
     
     const data = await response.json();
-    return data; // Your backend already formats the jobs perfectly
+    return data; 
   } catch (error) {
     console.error("Error fetching jobs from Backend:", error);
     return [];

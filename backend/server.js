@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const multer = require('multer'); 
-const PDFParser = require("pdf2json"); // Back to the reliable parser!
+const PDFParser = require("pdf2json"); 
 require('dotenv').config(); 
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -111,7 +111,7 @@ app.put('/api/students/:id', async (req, res) => {
     const updatedStudent = await Student.findByIdAndUpdate(
       req.params.id,
       { name, skills, graduationYear, education, preferredRole, experienceLevel },
-      { returnDocument: 'after' }
+      { returnDocument: 'after' } // Fixed to comply with Mongoose warning
     );
 
     if (!updatedStudent) {
@@ -225,7 +225,7 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
     const updatedStudent = await Student.findByIdAndUpdate(
       studentId,
       { skills: matchedSkills },
-      { new: true } // FIXED: Mongoose will now return the newly updated document!
+      { returnDocument: 'after' } // Fixed to comply with Mongoose warning
     );
 
     if (!updatedStudent) {

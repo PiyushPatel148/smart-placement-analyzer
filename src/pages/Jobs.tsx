@@ -14,15 +14,14 @@ const Jobs = () => {
 
   const studentId = localStorage.getItem("studentId");
 
-  const getEffectiveJobType = (level: string, toggleState: "FULLTIME" | "INTERN"): "FULLTIME" | "INTERN" => {
-    const levelLower = level.toLowerCase();
-    if (levelLower.includes("pre-final") || levelLower.includes("intern")) return "INTERN";
-    if (levelLower.includes("fresher")) return toggleState;
-    return "FULLTIME"; 
+  // Check if the user is junior/fresher level
+  const isFresher = expLevel.toLowerCase().includes("fresher") || expLevel.toLowerCase().includes("pre-final");
+  
+  //  Determine exactly what to send to the API based on the profile
+  const getSearchTarget = () => {
+    if (isFresher && fresherJobType === "INTERN") return "intern";
+    return expLevel; 
   };
-
-  const isFresher = expLevel.toLowerCase().includes("fresher");
-  const activeJobType = getEffectiveJobType(expLevel, fresherJobType);
 
   useEffect(() => {
     const initData = async () => {
@@ -31,7 +30,6 @@ const Jobs = () => {
 
       try {
         if (studentId) {
-          // FIXED: Changed localhost:5000 to ${API_BASE_URL}
           const response = await fetch(`${API_BASE_URL}/api/students/${studentId}`);
           const data = await response.json();
           
@@ -48,8 +46,9 @@ const Jobs = () => {
           }
         }
 
-        const initialType = getEffectiveJobType(currentExp, "FULLTIME");
-        const jobResults = await getJobs(roleQuery, initialType);
+        // Send the real experience level on first load
+        const initialExpTarget = (currentExp.includes("fresher") || currentExp.includes("pre-final")) && fresherJobType === "INTERN" ? "intern" : currentExp;
+        const jobResults = await getJobs(roleQuery, initialExpTarget);
         setJobs(jobResults);
 
       } catch (err) {
@@ -62,10 +61,16 @@ const Jobs = () => {
     initData();
   }, [studentId]);
 
-  const handleJobFetch = async (query: string, type: "FULLTIME" | "INTERN") => {
+  useEffect(() => {
+    if (!loading && isFresher) {
+      handleJobFetch(searchInput || "Software Engineer", getSearchTarget());
+    }
+  }, [fresherJobType]);
+
+  const handleJobFetch = async (query: string, targetExp: string) => {
     setLoading(true);
     try {
-      const jobResults = await getJobs(query, type);
+      const jobResults = await getJobs(query, targetExp);
       setJobs(jobResults);
     } catch (err) {
       console.error("Search failed:", err);
@@ -76,7 +81,7 @@ const Jobs = () => {
 
   const handleApiSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    handleJobFetch(searchInput || "Software Engineer", activeJobType);
+    handleJobFetch(searchInput || "Software Engineer", getSearchTarget());
   };
 
   const displayedJobs = jobs.map((job) => {
@@ -159,7 +164,7 @@ const Jobs = () => {
           <div className="mb-6 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
           <p className="text-foreground font-bold text-xl mb-2">Scanning global networks...</p>
           <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-            Fetching {activeJobType === "INTERN" ? "Internships" : "Full-Time Roles"}
+            Fetching {getSearchTarget() === "intern" ? "Internships" : "Roles"}
           </p>
         </div>
       ) : (
@@ -192,8 +197,8 @@ const Jobs = () => {
                           {job.title}
                         </h3>
                       </Link>
-                      <span className={`rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wider ${activeJobType === "INTERN" ? 'bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400' : 'bg-primary/10 border-primary/20 text-primary'}`}>
-                        {activeJobType === "INTERN" ? "Intern" : "Full-Time"}
+                      <span className={`rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wider ${getSearchTarget() === "intern" ? 'bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400' : 'bg-primary/10 border-primary/20 text-primary'}`}>
+                        {getSearchTarget() === "intern" ? "Intern" : "Full-Time"}
                       </span>
                     </div>
                     <p className="mb-6 text-base font-medium text-muted-foreground">

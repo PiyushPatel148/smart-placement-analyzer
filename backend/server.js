@@ -111,7 +111,7 @@ app.put('/api/students/:id', async (req, res) => {
     const updatedStudent = await Student.findByIdAndUpdate(
       req.params.id,
       { name, skills, graduationYear, education, preferredRole, experienceLevel },
-      { returnDocument: 'after' } 
+      { new: true } // FIXED: Mongoose will now return the newly updated document!
     );
 
     if (!updatedStudent) {
@@ -225,7 +225,7 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
     const updatedStudent = await Student.findByIdAndUpdate(
       studentId,
       { skills: matchedSkills },
-      { returnDocument: 'after' }
+      { new: true } // FIXED: Mongoose will now return the newly updated document!
     );
 
     if (!updatedStudent) {

@@ -14,12 +14,14 @@ const Jobs = () => {
 
   const studentId = localStorage.getItem("studentId");
 
-  // Check if the user is junior/fresher level
-  const isFresher = expLevel.toLowerCase().includes("fresher") || expLevel.toLowerCase().includes("pre-final");
+  // Separate the two entry levels
+  const isStrictFresher = expLevel.toLowerCase() === "entry level fresher";
+  const isPreFinal = expLevel.toLowerCase().includes("pre-final") || expLevel.toLowerCase().includes("intern");
   
-  //  Determine exactly what to send to the API based on the profile
   const getSearchTarget = () => {
-    if (isFresher && fresherJobType === "INTERN") return "intern";
+    // If they are pre-final, FORCE the search to look for internships
+    if (isPreFinal) return "intern";
+    if (isStrictFresher && fresherJobType === "INTERN") return "intern";
     return expLevel; 
   };
 
@@ -46,8 +48,14 @@ const Jobs = () => {
           }
         }
 
-        // Send the real experience level on first load
-        const initialExpTarget = (currentExp.includes("fresher") || currentExp.includes("pre-final")) && fresherJobType === "INTERN" ? "intern" : currentExp;
+        // Determine initial search target
+        const initialIsPreFinal = currentExp.toLowerCase().includes("pre-final") || currentExp.toLowerCase().includes("intern");
+        const initialIsFresher = currentExp.toLowerCase() === "entry level fresher";
+        
+        let initialExpTarget = currentExp;
+        if (initialIsPreFinal) initialExpTarget = "intern";
+        else if (initialIsFresher && fresherJobType === "INTERN") initialExpTarget = "intern";
+
         const jobResults = await getJobs(roleQuery, initialExpTarget);
         setJobs(jobResults);
 
@@ -62,7 +70,7 @@ const Jobs = () => {
   }, [studentId]);
 
   useEffect(() => {
-    if (!loading && isFresher) {
+    if (!loading && isStrictFresher) {
       handleJobFetch(searchInput || "Software Engineer", getSearchTarget());
     }
   }, [fresherJobType]);
@@ -123,7 +131,7 @@ const Jobs = () => {
           </button>
         </form>
 
-        {isFresher && (
+        {isStrictFresher && (
           <div className="flex flex-col items-center justify-center gap-4">
             <div className="inline-flex rounded-full bg-muted/50 p-1.5 border border-border shadow-inner">
               <button

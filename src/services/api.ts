@@ -14,18 +14,18 @@ export interface Job {
 }
 
 export const getJobs = async (query: string, targetExp: string): Promise<Job[]> => {
-  // Pass the real experience level directly to the backend
   const url = `${API_BASE_URL}/api/jobs?query=${encodeURIComponent(query)}&exp=${encodeURIComponent(targetExp)}`;
+  
+  // Grab the custom key from the browser if it exists
+  const customKey = localStorage.getItem("rapidApiKey");
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: customKey ? { "x-custom-api-key": customKey } : {}
+    });
     
-    if (!response.ok) {
-      throw new Error(`Backend error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data; 
+    if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+    return await response.json(); 
   } catch (error) {
     console.error("Error fetching jobs from Backend:", error);
     return [];
@@ -34,16 +34,15 @@ export const getJobs = async (query: string, targetExp: string): Promise<Job[]> 
 
 export const getJobById = async (id: string): Promise<Job | null> => {
   const url = `${API_BASE_URL}/api/jobs/${id}`;
+  const customKey = localStorage.getItem("rapidApiKey");
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: customKey ? { "x-custom-api-key": customKey } : {}
+    });
     
-    if (!response.ok) {
-       throw new Error(`Backend error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
+    if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+    return await response.json();
   } catch (error) {
     console.error(`Error fetching job details for ID ${id}:`, error);
     return null;

@@ -111,7 +111,7 @@ app.put('/api/students/:id', async (req, res) => {
     const updatedStudent = await Student.findByIdAndUpdate(
       req.params.id,
       { name, skills, graduationYear, education, preferredRole, experienceLevel },
-      { returnDocument: 'after' } // Fixed to comply with Mongoose warning
+      { returnDocument: 'after' } 
     );
 
     if (!updatedStudent) {
@@ -187,20 +187,17 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
     console.log("Extracting text using pdf2json...");
     let rawText = await extractTextFromPDF(req.file.buffer);
     
-    // Safety check
     if (!rawText || !rawText.trim()) {
        console.log("Warning: No text could be extracted from this PDF.");
        return res.status(422).json({ success: false, message: "Could not extract text from PDF." });
     }
 
-    // Sometimes pdf2json outputs URL-encoded strings, try to decode it safely
     try {
       rawText = decodeURIComponent(rawText);
     } catch (e) {
       // Ignore if not encoded
     }
 
-    // NORMALIZATION: Clean up weird spacing and make it lowercase
     const cleanText = rawText.toLowerCase().replace(/\s+/g, ' ');
 
     console.log("--- CLEAN TEXT PREVIEW ---");
@@ -212,12 +209,9 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
       "AWS", "Docker", "Git", "HTML", "CSS", "JavaScript", "TypeScript"
     ];
 
-    // MATCHING WITH SAFE REGEX
     const matchedSkills = techDictionary.filter(skill => {
       const normalizedSkill = skill.toLowerCase();
       const escapedSkill = normalizedSkill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      
-      // Lookarounds ensure we match "c++" without grabbing "c" from the middle of another word
       const regex = new RegExp(`(?<![a-z0-9])${escapedSkill}(?![a-z0-9])`, 'i');
       return regex.test(cleanText);
     });
@@ -225,7 +219,7 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
     const updatedStudent = await Student.findByIdAndUpdate(
       studentId,
       { skills: matchedSkills },
-      { returnDocument: 'after' } // Fixed to comply with Mongoose warning
+      { returnDocument: 'after' } 
     );
 
     if (!updatedStudent) {
@@ -256,6 +250,7 @@ app.get('/api/jobs', async (req, res) => {
     if (expLevel.includes('1-3')) searchKeywords = 'junior';
     else if (expLevel.includes('3-5')) searchKeywords = 'mid level';
     else if (expLevel.includes('5+')) searchKeywords = 'senior';
+    else if (expLevel.includes('intern')) searchKeywords = 'internship intern'; 
 
     const searchQuery = `${userQuery} ${searchKeywords} India`;
 
@@ -264,7 +259,8 @@ app.get('/api/jobs', async (req, res) => {
       url: 'https://jsearch.p.rapidapi.com/search',
       params: { query: searchQuery, page: '1', num_pages: '1' },
       headers: {
-        'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
+        // Uses custom key from frontend if it exists, otherwise falls back to environment variable
+        'X-RapidAPI-Key': req.headers['x-custom-api-key'] || process.env.RAPIDAPI_KEY,
         'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
       }
     };
@@ -346,7 +342,8 @@ app.get('/api/jobs/:id', async (req, res) => {
       url: 'https://jsearch.p.rapidapi.com/job-details',
       params: { job_id: id, extended_publisher_details: 'false' },
       headers: {
-        'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
+        //Uses custom key from frontend if it exists, otherwise falls back to environment variable
+        'X-RapidAPI-Key': req.headers['x-custom-api-key'] || process.env.RAPIDAPI_KEY,
         'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
       }
     };

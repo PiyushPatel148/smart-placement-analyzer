@@ -28,7 +28,9 @@ const ResumeUpload = () => {
     }
 
     const studentId = localStorage.getItem("studentId");
-    if (!studentId) {
+    const token = localStorage.getItem("token"); // Grab token
+    
+    if (!studentId || !token) {
       setMessage("You must be logged in to upload a resume.");
       return;
     }
@@ -41,11 +43,20 @@ const ResumeUpload = () => {
     formData.append("studentId", studentId);
 
     try {
-      // Changed from localhost:5000 to use your dynamic API variable!
       const response = await fetch(`${API_BASE_URL}/api/upload-resume`, {
         method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}` // Send token to Bouncer (Do not set Content-Type for FormData)
+        },
         body: formData, 
       });
+
+      //  SECURITY CHECK
+      if (response.status === 401) {
+        localStorage.clear();
+        window.location.href = "/login";
+        return;
+      }
 
       const data = await response.json();
 

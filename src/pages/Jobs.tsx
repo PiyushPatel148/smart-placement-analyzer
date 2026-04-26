@@ -13,6 +13,7 @@ const Jobs = () => {
   const [loading, setLoading] = useState(true);
 
   const studentId = localStorage.getItem("studentId");
+  const token = localStorage.getItem("token"); // Grab token
 
   // Separate the two entry levels
   const isStrictFresher = expLevel.toLowerCase() === "entry level fresher";
@@ -31,8 +32,20 @@ const Jobs = () => {
       let roleQuery = "Software Engineer";
 
       try {
-        if (studentId) {
-          const response = await fetch(`${API_BASE_URL}/api/students/${studentId}`);
+        if (studentId && token) {
+          const response = await fetch(`${API_BASE_URL}/api/students/${studentId}`, {
+            headers: {
+              "Authorization": `Bearer ${token}` // ADDED: Send token to get profile data
+            }
+          });
+
+          // SECURITY CHECK
+          if (response.status === 401) {
+            localStorage.clear();
+            window.location.href = "/login";
+            return;
+          }
+
           const data = await response.json();
           
           if (response.ok && data.student) {
@@ -67,7 +80,7 @@ const Jobs = () => {
     };
     
     initData();
-  }, [studentId]);
+  }, [studentId, token]);
 
   useEffect(() => {
     if (!loading && isStrictFresher) {

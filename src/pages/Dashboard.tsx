@@ -40,17 +40,30 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   const studentId = localStorage.getItem("studentId");
+  const token = localStorage.getItem("token"); // Grab token
 
   // Fetch user data and saved job details
   useEffect(() => {
     const fetchUserData = async () => {
-      if (!studentId) {
+      if (!studentId || !token) {
         setLoading(false);
         return;
       }
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/students/${studentId}`);
+        const response = await fetch(`${API_BASE_URL}/api/students/${studentId}`, {
+          headers: {
+            "Authorization": `Bearer ${token}` // ADDED: Send token to Bouncer
+          }
+        });
+
+        // SECURITY CHECK: Kick out if fake token
+        if (response.status === 401) {
+          localStorage.clear();
+          window.location.href = "/login";
+          return;
+        }
+
         const data = await response.json();
         
         if (response.ok && data.student) {
@@ -76,21 +89,31 @@ const Dashboard = () => {
     };
 
     fetchUserData();
-  }, [studentId]);
+  }, [studentId, token]);
 
   // Function to remove a job from the saved list
   const handleRemoveJob = async (e: React.MouseEvent, jobId: string | number) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!studentId) return;
+    if (!studentId || !token) return;
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/students/${studentId}/save-job`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` // Send token to save route
+        },
         body: JSON.stringify({ jobId: String(jobId) })
       });
+
+      //  SECURITY CHECK
+      if (res.status === 401) {
+        localStorage.clear();
+        window.location.href = "/login";
+        return;
+      }
 
       if (res.ok) {
         setSavedJobs(prev => prev.filter(job => String(job.id) !== String(jobId)));

@@ -2,55 +2,69 @@ import { useState, useEffect } from "react";
 import { API_BASE_URL } from "../services/api";
 
 const Profile = () => {
-  const [name, setName] = useState("");
-  const [education, setEducation] = useState("");
-  const [gradYear, setGradYear] = useState("");
-  const [preferredRole, setPreferredRole] = useState("");
-  const [experienceLevel, setExperienceLevel] = useState("entry level fresher");
+  // EXPLICIT TYPES ADDED FOR VERCEL
+  const [name, setName] = useState<string>("");
+  const [education, setEducation] = useState<string>("");
+  const [gradYear, setGradYear] = useState<string>("");
+  const [preferredRole, setPreferredRole] = useState<string>("");
+  const [experienceLevel, setExperienceLevel] = useState<string>("entry level fresher");
   
   const [skills, setSkills] = useState<string[]>([]);
-  const [newSkill, setNewSkill] = useState("");
-  const [apiKey, setApiKey] = useState("");
+  const [newSkill, setNewSkill] = useState<string>("");
+  const [apiKey, setApiKey] = useState<string>("");
 
-  const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
-  const [message, setMessage] = useState("");
-  const [apiMessage, setApiMessage] = useState("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [fetching, setFetching] = useState<boolean>(true);
+  const [message, setMessage] = useState<string>("");
+  const [apiMessage, setApiMessage] = useState<string>("");
 
   const studentId = localStorage.getItem("studentId");
+  const token = localStorage.getItem("token"); 
 
   useEffect(() => {
     const savedKey = localStorage.getItem("rapidApiKey");
     if (savedKey) setApiKey(savedKey);
 
     const fetchProfile = async () => {
-      if (!studentId) {
+      if (!studentId || !token) {
         setFetching(false);
         return;
       }
       try {
-        const response = await fetch(`${API_BASE_URL}/api/students/${studentId}`);
-        const data = await response.json();
+        const response = await fetch(`${API_BASE_URL}/api/students/${studentId}`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (response.status === 401) {
+          localStorage.clear();
+          window.location.href = "/login";
+          return;
+        }
+
+        const data: any = await response.json(); // Cast to any for Vercel
         if (response.ok && data.student) {
           setName(data.student.name || "");
           setEducation(data.student.education || "");
-          setGradYear(data.student.graduationYear || "");
+          setGradYear(String(data.student.graduationYear || ""));
           setPreferredRole(data.student.preferredRole || "");
           setExperienceLevel(data.student.experienceLevel || "entry level fresher");
           setSkills(data.student.skills || []);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Failed to load profile", error);
       } finally {
         setFetching(false);
       }
     };
     fetchProfile();
-  }, [studentId]);
+  }, [studentId, token]);
 
   const handleAddSkill = (e: React.FormEvent) => {
     e.preventDefault(); 
-    const trimmedSkill = newSkill.trim();
+    // Safely cast to String to prevent Vercel "unknown" errors
+    const trimmedSkill = String(newSkill).trim();
     if (trimmedSkill && !skills.includes(trimmedSkill)) {
       setSkills([...skills, trimmedSkill]);
       setNewSkill("");
@@ -71,7 +85,10 @@ const Profile = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/students/${studentId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` 
+        },
         body: JSON.stringify({ 
           name, 
           education, 
@@ -82,12 +99,18 @@ const Profile = () => {
         }),
       });
 
+      if (response.status === 401) {
+        localStorage.clear();
+        window.location.href = "/login";
+        return;
+      }
+
       if (response.ok) {
         setMessage("✅ Profile updated successfully!");
       } else {
         setMessage("❌ Failed to update profile.");
       }
-    } catch (error) {
+    } catch (error: any) {
       setMessage("❌ Server error while saving.");
     } finally {
       setLoading(false);
@@ -96,12 +119,13 @@ const Profile = () => {
 
   const handleSaveKey = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!apiKey.trim()) {
+    // Safely cast to String for Vercel
+    if (!String(apiKey).trim()) {
       setApiMessage("❌ Please enter a valid key.");
       setTimeout(() => setApiMessage(""), 3000);
       return;
     }
-    localStorage.setItem("rapidApiKey", apiKey.trim());
+    localStorage.setItem("rapidApiKey", String(apiKey).trim());
     setApiMessage("✅ API Key saved securely to your browser.");
     setTimeout(() => setApiMessage(""), 3000);
   };
@@ -151,44 +175,19 @@ const Profile = () => {
             <div className="grid gap-6 md:grid-cols-2">
               <div className="md:col-span-2">
                 <label className="mb-2 block text-xs font-bold text-muted-foreground uppercase tracking-wider">Full Name</label>
-                <input 
-                  type="text" 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value)} 
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3.5 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none" 
-                  placeholder="Enter your full name"
-                  required 
-                />
+                <input type="text" value={name} onChange={(e: any) => setName(e.target.value)} className="w-full rounded-xl border border-border bg-background px-4 py-3.5 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none" placeholder="Enter your full name" required />
               </div>
-              
               <div>
                 <label className="mb-2 block text-xs font-bold text-muted-foreground uppercase tracking-wider">University / Education</label>
-                <input 
-                  type="text" 
-                  value={education} 
-                  onChange={(e) => setEducation(e.target.value)} 
-                  placeholder="e.g. NITK Surathkal" 
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3.5 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none" 
-                />
+                <input type="text" value={education} onChange={(e: any) => setEducation(e.target.value)} placeholder="e.g. NITK Surathkal" className="w-full rounded-xl border border-border bg-background px-4 py-3.5 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none" />
               </div>
               <div>
                 <label className="mb-2 block text-xs font-bold text-muted-foreground uppercase tracking-wider">Graduation Year</label>
-                <input 
-                  type="number" 
-                  value={gradYear} 
-                  onChange={(e) => setGradYear(e.target.value)} 
-                  placeholder="e.g. 2026" 
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3.5 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none" 
-                />
+                <input type="number" value={gradYear} onChange={(e: any) => setGradYear(e.target.value)} placeholder="e.g. 2026" className="w-full rounded-xl border border-border bg-background px-4 py-3.5 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none" />
               </div>
-
               <div className="md:col-span-2">
                 <label className="mb-2 block text-xs font-bold text-muted-foreground uppercase tracking-wider">Target Role</label>
-                <select 
-                  value={preferredRole} 
-                  onChange={(e) => setPreferredRole(e.target.value)} 
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3.5 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none cursor-pointer"
-                >
+                <select value={preferredRole} onChange={(e: any) => setPreferredRole(e.target.value)} className="w-full rounded-xl border border-border bg-background px-4 py-3.5 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none cursor-pointer">
                   <option value="">Select a role...</option>
                   <option value="Software Engineer">Software Engineer</option>
                   <option value="Frontend Developer">Frontend Developer</option>
@@ -196,14 +195,9 @@ const Profile = () => {
                   <option value="Data Analyst">Data Analyst</option>
                 </select>
               </div>
-              
               <div className="md:col-span-2">
                 <label className="mb-2 block text-xs font-bold text-muted-foreground uppercase tracking-wider">Experience Level</label>
-                <select 
-                  value={experienceLevel} 
-                  onChange={(e) => setExperienceLevel(e.target.value)} 
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3.5 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none cursor-pointer"
-                >
+                <select value={experienceLevel} onChange={(e: any) => setExperienceLevel(e.target.value)} className="w-full rounded-xl border border-border bg-background px-4 py-3.5 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none cursor-pointer">
                   <option value="pre-final year intern">Pre-Final Year Student (Seeking Internships)</option>
                   <option value="entry level fresher">Fresher / 0 Years</option>
                   <option value="1-3 years junior">1 to 3 Years (Junior)</option>
@@ -220,7 +214,6 @@ const Profile = () => {
               Verified Technical Skills
             </h2>
             <p className="mb-6 text-sm text-muted-foreground font-medium">Add any specialized skills the AI analyzer might have missed.</p>
-            
             <div className="mb-6 flex flex-wrap gap-2.5">
               {skills.map((skill) => (
                 <span key={skill} className="flex items-center gap-2 rounded-xl bg-primary/5 px-4 py-2 text-sm font-bold text-primary border border-primary/10 shadow-sm transition-all hover:bg-primary/10">
@@ -232,30 +225,13 @@ const Profile = () => {
               ))}
               {skills.length === 0 && <span className="text-sm text-muted-foreground italic">No skills added yet.</span>}
             </div>
-            
             <div className="flex gap-3">
-              <input 
-                type="text" 
-                value={newSkill} 
-                onChange={(e) => setNewSkill(e.target.value)} 
-                placeholder="e.g., GraphQL, Docker..." 
-                className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary outline-none transition-all" 
-              />
-              <button 
-                type="button" 
-                onClick={handleAddSkill} 
-                className="rounded-xl bg-muted px-8 py-3 text-sm font-bold text-foreground hover:bg-muted/80 transition-all active:scale-95 shadow-sm"
-              >
-                Add
-              </button>
+              <input type="text" value={newSkill} onChange={(e: any) => setNewSkill(e.target.value)} placeholder="e.g., GraphQL, Docker..." className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary outline-none transition-all" />
+              <button type="button" onClick={handleAddSkill} className="rounded-xl bg-muted px-8 py-3 text-sm font-bold text-foreground hover:bg-muted/80 transition-all active:scale-95 shadow-sm">Add</button>
             </div>
           </div>
 
-          <button 
-            type="submit" 
-            disabled={loading} 
-            className="w-full rounded-2xl bg-primary py-4 px-6 text-base font-bold text-primary-foreground shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none"
-          >
+          <button type="submit" disabled={loading} className="w-full rounded-2xl bg-primary py-4 px-6 text-base font-bold text-primary-foreground shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none">
             {loading ? "Saving Changes..." : "Save My Profile"}
           </button>
         </form>
@@ -272,26 +248,10 @@ const Profile = () => {
           Avoid rate limits during testing. Enter your own JSearch RapidAPI key below. This is stored <span className="font-bold text-foreground border-b-2 border-primary/20">locally in your browser</span> and never sent to our servers.
         </p>
         <div className="flex flex-col gap-4">
-          <input 
-            type="password" 
-            placeholder="Enter RapidAPI Key..." 
-            value={apiKey} 
-            onChange={(e) => setApiKey(e.target.value)} 
-            className="w-full rounded-xl border border-border bg-background py-3.5 px-4 text-sm focus:border-primary outline-none transition-all shadow-inner" 
-          />
+          <input type="password" placeholder="Enter RapidAPI Key..." value={apiKey} onChange={(e: any) => setApiKey(e.target.value)} className="w-full rounded-xl border border-border bg-background py-3.5 px-4 text-sm focus:border-primary outline-none transition-all shadow-inner" />
           <div className="flex gap-3">
-            <button 
-              onClick={handleSaveKey} 
-              className="flex-1 rounded-xl bg-primary py-3 px-4 text-sm font-bold text-primary-foreground shadow-md hover:opacity-90 active:scale-95 transition-all"
-            >
-              Save Key
-            </button>
-            <button 
-              onClick={handleClearKey} 
-              className="rounded-xl border border-border bg-muted py-3 px-6 text-sm font-bold text-muted-foreground hover:bg-destructive hover:text-destructive-foreground active:scale-95 transition-all"
-            >
-              Clear
-            </button>
+            <button onClick={handleSaveKey} className="flex-1 rounded-xl bg-primary py-3 px-4 text-sm font-bold text-primary-foreground shadow-md hover:opacity-90 active:scale-95 transition-all">Save Key</button>
+            <button onClick={handleClearKey} className="rounded-xl border border-border bg-muted py-3 px-6 text-sm font-bold text-muted-foreground hover:bg-destructive hover:text-destructive-foreground active:scale-95 transition-all">Clear</button>
           </div>
         </div>
         {apiMessage && (

@@ -32,7 +32,7 @@ app.get('/api/test', (req, res) => {
   res.json({ success: true, message: "backend is live!" });
 });
 
-// --- SIGNUP ROUTE ---
+// --- SIGNUP ROUTE (PUBLIC) ---
 app.post('/api/students', async (req, res) => {
   try {
     const { name, email, password, skills, graduationYear } = req.body;
@@ -60,7 +60,7 @@ app.post('/api/students', async (req, res) => {
   }
 });
 
-// --- LOGIN ROUTE ---
+// --- LOGIN ROUTE (PUBLIC) ---
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -89,8 +89,28 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// --- GET STUDENT PROFILE ---
-app.get('/api/students/:id', async (req, res) => {
+// ==========================================
+// 🛡️ SECURITY MIDDLEWARE (THE BOUNCER) 🛡️
+// ==========================================
+const verifyToken = (req, res, next) => {
+  const authHeader = req.header('Authorization');
+  
+  if (!authHeader) {
+    return res.status(401).json({ success: false, message: "Access Denied. No token provided." });
+  }
+
+  try {
+    const token = authHeader.replace("Bearer ", "");
+    const verified = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = verified; 
+    next(); 
+  } catch (error) {
+    res.status(401).json({ success: false, message: "Invalid or expired token." });
+  }
+};
+
+// --- GET STUDENT PROFILE (PROTECTED) ---
+app.get('/api/students/:id', verifyToken, async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
     if (!student) {
@@ -103,8 +123,8 @@ app.get('/api/students/:id', async (req, res) => {
   }
 });
 
-// --- UPDATE STUDENT PROFILE ---
-app.put('/api/students/:id', async (req, res) => {
+// --- UPDATE STUDENT PROFILE (PROTECTED) ---
+app.put('/api/students/:id', verifyToken, async (req, res) => {
   try {
     const { name, skills, graduationYear, education, preferredRole, experienceLevel } = req.body;
     
@@ -129,8 +149,8 @@ app.put('/api/students/:id', async (req, res) => {
   }
 });
 
-// --- SAVE OR UNSAVE A JOB ---
-app.post('/api/students/:id/save-job', async (req, res) => {
+// --- SAVE OR UNSAVE A JOB (PROTECTED) ---
+app.post('/api/students/:id/save-job', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { jobId } = req.body;
@@ -160,7 +180,6 @@ app.post('/api/students/:id/save-job', async (req, res) => {
   }
 });
 
-// Helper function to extract text from PDF buffer using pdf2json
 const extractTextFromPDF = (buffer) => {
   return new Promise((resolve, reject) => {
     const pdfParser = new PDFParser(null, 1);
@@ -172,8 +191,8 @@ const extractTextFromPDF = (buffer) => {
   });
 };
 
-// --- RESUME UPLOAD & ANALYSIS ROUTE ---
-app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
+// --- RESUME UPLOAD & ANALYSIS ROUTE (PROTECTED) ---
+app.post('/api/upload-resume', verifyToken, upload.single('resume'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: "No file uploaded." });
@@ -188,24 +207,16 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
     let rawText = await extractTextFromPDF(req.file.buffer);
     
     if (!rawText || !rawText.trim()) {
-       console.log("Warning: No text could be extracted from this PDF.");
        return res.status(422).json({ success: false, message: "Could not extract text from PDF." });
     }
 
-    try {
-      rawText = decodeURIComponent(rawText);
-    } catch (e) {
-      // Ignore if not encoded
-    }
+    try { rawText = decodeURIComponent(rawText); } catch (e) {}
 
     const cleanText = rawText.toLowerCase().replace(/\s+/g, ' ');
 
-    console.log("--- CLEAN TEXT PREVIEW ---");
-    console.log(cleanText.substring(0, 300));
-
     const techDictionary = [
       "React", "Node.js", "Express", "MongoDB", "Python", "Java", 
-      "C++", "C", "Machine Learning", "Data Analysis", "SQL", "MySQL", 
+      "C++", "C", "C#", "Machine Learning", "Data Analysis", "SQL", "MySQL", 
       "AWS", "Docker", "Git", "HTML", "CSS", "JavaScript", "TypeScript"
     ];
 
@@ -222,11 +233,7 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
       { returnDocument: 'after' } 
     );
 
-    if (!updatedStudent) {
-      return res.status(404).json({ success: false, message: "Student not found in database." });
-    }
-
-    console.log(`Success! Found ${matchedSkills.length} skills on Render.`);
+    if (!updatedStudent) return res.status(404).json({ success: false, message: "Student not found in database." });
 
     res.status(200).json({ 
       success: true, 
@@ -235,12 +242,11 @@ app.post('/api/upload-resume', upload.single('resume'), async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Cloud Parsing Error:", error.message || error);
     res.status(500).json({ success: false, message: "Failed to process resume on server." });
   }
 });
 
-// --- FETCH REAL JOBS FROM JSEARCH ---
+// --- FETCH REAL JOBS FROM JSEARCH (PUBLIC) ---
 app.get('/api/jobs', async (req, res) => {
   try {
     const userQuery = req.query.query || 'Software Engineer';
@@ -259,20 +265,15 @@ app.get('/api/jobs', async (req, res) => {
       url: 'https://jsearch.p.rapidapi.com/search',
       params: { query: searchQuery, page: '1', num_pages: '1' },
       headers: {
-        // Uses custom key from frontend if it exists, otherwise falls back to environment variable
         'X-RapidAPI-Key': req.headers['x-custom-api-key'] || process.env.RAPIDAPI_KEY,
         'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
       }
     };
 
-    console.log(`Fetching jobs for: ${searchQuery}...`);
     const response = await axios.request(options);
     const rawJobs = response.data.data || [];
     
-    if (rawJobs.length === 0) {
-      console.log("API returned 0 jobs. Forcing failsafe fallback data.");
-      throw new Error("Zero jobs returned from API"); 
-    }
+    if (rawJobs.length === 0) throw new Error("Zero jobs returned from API"); 
     
     const techDictionary = [
       "React", "Node.js", "Express", "MongoDB", "Python", "Java", 
@@ -282,39 +283,19 @@ app.get('/api/jobs', async (req, res) => {
     ];
 
     const cleanedJobs = rawJobs.map(job => {
-      const fullTextToSearch = [
-        ...(job.job_highlights?.Qualifications || []),
-        ...(job.job_highlights?.Responsibilities || []),
-        job.job_description || ""
-      ].join(" ");
-      
+      const fullTextToSearch = [...(job.job_highlights?.Qualifications || []), ...(job.job_highlights?.Responsibilities || []), job.job_description || ""].join(" ");
       const actualSkills = techDictionary.filter(skill => {
-        const escapedSkill = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(`(?<![a-zA-Z0-9])${escapedSkill}(?![a-zA-Z0-9])`, 'i');
+        const regex = new RegExp(`(?<![a-zA-Z0-9])${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![a-zA-Z0-9])`, 'i');
         return regex.test(fullTextToSearch);
       });
-      
-      return {
-        id: job.job_id,
-        title: job.job_title,
-        company: job.employer_name,
-        type: job.job_employment_type || "Full-time",
-        skillsRequired: actualSkills,
-        applyLink: job.job_apply_link,
-        logo: job.employer_logo
-      };
+      return { id: job.job_id, title: job.job_title, company: job.employer_name, type: job.job_employment_type || "Full-time", skillsRequired: actualSkills, applyLink: job.job_apply_link, logo: job.employer_logo };
     });
 
     const relevantJobs = cleanedJobs.filter(job => job.skillsRequired.length > 0);
-
-    if (relevantJobs.length === 0 && cleanedJobs.length > 0) {
-       return res.json(cleanedJobs.slice(0, 5)); 
-    }
-
+    if (relevantJobs.length === 0 && cleanedJobs.length > 0) return res.json(cleanedJobs.slice(0, 5)); 
     res.json(relevantJobs);
 
   } catch (error) {
-    console.error("Triggering Fallback Failsafe:", error.message);
     res.json([
       { id: "fallback-1", title: "Frontend Developer (Fresher)", company: "TechCorp India", type: "Full-time", skillsRequired: ["React", "JavaScript", "HTML", "CSS"] },
       { id: "fallback-2", title: "Data Analyst Intern", company: "DataMinds", type: "Internship", skillsRequired: ["Python", "SQL", "Excel"] },
@@ -323,11 +304,10 @@ app.get('/api/jobs', async (req, res) => {
   }
 });
 
-// --- FETCH SINGLE JOB DETAILS ---
+// --- FETCH SINGLE JOB DETAILS (PUBLIC) ---
 app.get('/api/jobs/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
     if (id.startsWith('fallback-')) {
        const fallbacks = {
          "fallback-1": { id: "fallback-1", title: "Frontend Developer (Fresher)", company: "TechCorp India", type: "Full-time", skillsRequired: ["React", "JavaScript", "HTML", "CSS"], description: "Join TechCorp building React components.", location: "Bangalore, India", salary: "₹4,00,000 - ₹6,00,000" },
@@ -341,44 +321,24 @@ app.get('/api/jobs/:id', async (req, res) => {
       method: 'GET',
       url: 'https://jsearch.p.rapidapi.com/job-details',
       params: { job_id: id, extended_publisher_details: 'false' },
-      headers: {
-        //Uses custom key from frontend if it exists, otherwise falls back to environment variable
-        'X-RapidAPI-Key': req.headers['x-custom-api-key'] || process.env.RAPIDAPI_KEY,
-        'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
-      }
+      headers: { 'X-RapidAPI-Key': req.headers['x-custom-api-key'] || process.env.RAPIDAPI_KEY, 'X-RapidAPI-Host': 'jsearch.p.rapidapi.com' }
     };
 
     const response = await axios.request(options);
     const job = response.data.data[0];
-
     if (!job) return res.status(404).json({ message: "Job not found" });
 
     const techDictionary = [
-      "React", "Node.js", "Express", "MongoDB", "Python", "Java", 
-      "C++", "C", "C#", "Machine Learning", "Data Analysis", "SQL", "MySQL", 
-      "AWS", "Docker", "Git", "HTML", "CSS", "JavaScript", "TypeScript",
-      "Azure", "Google Cloud", "Excel", "Tableau", "Spring Boot", "Angular", "Vue"
+      "React", "Node.js", "Express", "MongoDB", "Python", "Java", "C++", "C", "C#", "Machine Learning", "Data Analysis", "SQL", "MySQL", "AWS", "Docker", "Git", "HTML", "CSS", "JavaScript", "TypeScript", "Azure", "Google Cloud", "Excel", "Tableau", "Spring Boot", "Angular", "Vue"
     ];
-    
     const fullText = [job.job_description, ...(job.job_highlights?.Qualifications || [])].join(" ");
     const skills = techDictionary.filter(skill => {
       const regex = new RegExp(`(?<![a-zA-Z0-9])${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![a-zA-Z0-9])`, 'i');
       return regex.test(fullText);
     });
 
-    res.json({
-      id: job.job_id,
-      title: job.job_title,
-      company: job.employer_name,
-      description: job.job_description,
-      skillsRequired: skills,
-      applyLink: job.job_apply_link,
-      location: (job.job_city || "") + (job.job_country ? ", " + job.job_country : "Remote"),
-      salary: job.job_min_salary ? `${job.job_min_salary} - ${job.job_max_salary}` : "Not Disclosed",
-      logo: job.employer_logo
-    });
+    res.json({ id: job.job_id, title: job.job_title, company: job.employer_name, description: job.job_description, skillsRequired: skills, applyLink: job.job_apply_link, location: (job.job_city || "") + (job.job_country ? ", " + job.job_country : "Remote"), salary: job.job_min_salary ? `${job.job_min_salary} - ${job.job_max_salary}` : "Not Disclosed", logo: job.employer_logo });
   } catch (error) {
-    console.error("Detail Fetch Error:", error.message);
     res.status(500).json({ message: "Error fetching job details" });
   }
 });

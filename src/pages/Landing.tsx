@@ -184,9 +184,10 @@ const Landing = ({ isLoggedIn }: LandingProps) => {
             <div>
               <h4 className="font-bold text-foreground mb-4 tracking-wide uppercase text-xs">Legal</h4>
               <ul className="space-y-3 text-sm font-medium text-muted-foreground">
-                <li><span className="hover:text-primary transition-colors cursor-pointer">Privacy Policy</span></li>
-                <li><span className="hover:text-primary transition-colors cursor-pointer">Terms of Service</span></li>
-                <li><span className="hover:text-primary transition-colors cursor-pointer">Contact Us</span></li>
+                {/* --- UPDATED LEGAL LINKS --- */}
+                <li><Link to="/privacy" className="hover:text-primary transition-colors cursor-pointer">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="hover:text-primary transition-colors cursor-pointer">Terms of Service</Link></li>
+                <li><a href="mailto:support@skillmatch.com" className="hover:text-primary transition-colors cursor-pointer">Contact Us</a></li>
               </ul>
             </div>
           </div>

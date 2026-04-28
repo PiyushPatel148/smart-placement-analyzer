@@ -42,7 +42,6 @@ const Navbar = ({ isLoggedIn, onLogout }: NavbarProps) => {
 
         <div className="flex items-center gap-2">
           
-          {/* NAVIGATION LINKS: Conditional rendering based on auth state */}
           <nav className="flex items-center gap-1">
             {isLoggedIn ? (
               <>
@@ -50,6 +49,9 @@ const Navbar = ({ isLoggedIn, onLogout }: NavbarProps) => {
                 <NavItem to="/jobs" label="Jobs" />
                 <NavItem to="/resume" label="Analyzer" />
                 <NavItem to="/profile" label="Profile" />
+                
+                {/* ADDED: Feedback Link */}
+                <NavItem to="/feedback" label="Feedback" />
                 
                 <button
                   onClick={handleLogout}
@@ -71,10 +73,7 @@ const Navbar = ({ isLoggedIn, onLogout }: NavbarProps) => {
             )}
           </nav>
 
-          {/* THEME TOGGLE 
-              - [&_button]:bg-muted adds a soft grey background so the button shape is visible.
-              - [&_svg]:text-foreground forces correct icon contrast in light/dark modes. 
-          */}
+          {/* THEME TOGGLE */}
           <div className="ml-3 border-l border-border pl-3 flex items-center [&_button]:bg-muted hover:[&_button]:bg-muted/80 [&_svg]:text-foreground">
             <ModeToggle />
           </div>

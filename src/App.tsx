@@ -4,7 +4,7 @@
  * The isLoggedIn state controls which pages users can access.
  * ROUTING:
  * - /login and /signup are public pages
- * - /dashboard, /profile, /resume, /jobs are protected (require login)
+ * - /dashboard, /profile, /resume, /jobs, /feedback are protected (require login)
  * - Unknown routes show 404 page
  */
 import { ThemeProvider } from "./components/theme-provider";
@@ -25,10 +25,12 @@ import Dashboard from "./pages/Dashboard";
 import Jobs from "./pages/Jobs";
 import JobDetails from "./pages/JobDetails";
 import NotFound from "./pages/NotFound";
+import Feedback from "./pages/Feedback";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 
 // Layout components
 import Navbar from "./components/Navbar";
-
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -64,12 +66,10 @@ const App = () => {
 
             <Routes>
               {/* Public routes */}
-              {/* Landing page: Always show landing page at the root URL */}
-              <Route path="/" element={<Landing isLoggedIn={isLoggedIn} />} 
-              />
+              <Route path="/" element={<Landing isLoggedIn={isLoggedIn} />} />
               <Route path="/login" element={<Login onLogin={handleLogin} />} />
-              
-              {/* Passed onLogin to Signup to enable automatic login */}
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
               <Route path="/signup" element={<Signup onLogin={handleLogin} />} />
 
               {/* Protected routes — redirect to login if not logged in */}
@@ -92,6 +92,12 @@ const App = () => {
               <Route
                 path="/jobs/:id"
                 element={isLoggedIn ? <JobDetails /> : <Navigate to="/login" />}
+              />
+              
+              {/* ADDED: Protected route for Feedback */}
+              <Route
+                path="/feedback"
+                element={isLoggedIn ? <Feedback /> : <Navigate to="/login" />}
               />
 
               {/* 404 catch-all */}

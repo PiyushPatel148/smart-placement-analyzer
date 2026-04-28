@@ -10,6 +10,7 @@ require('dotenv').config();
 
 const upload = multer({ storage: multer.memoryStorage() });
 const Student = require('./Student'); 
+const Feedback = require('./Feedback');
 
 const app = express();
 
@@ -108,6 +109,25 @@ const verifyToken = (req, res, next) => {
     res.status(401).json({ success: false, message: "Invalid or expired token." });
   }
 };
+
+// --- SUBMIT FEEDBACK (PROTECTED) ---
+app.post('/api/feedback', verifyToken, async (req, res) => {
+  try {
+    const { studentId, studentName, rating, comments } = req.body;
+
+    if (!rating || !comments) {
+      return res.status(400).json({ success: false, message: "Rating and comments are required." });
+    }
+
+    const newFeedback = new Feedback({ studentId, studentName, rating, comments });
+    await newFeedback.save();
+
+    res.status(201).json({ success: true, message: "Thank you for your feedback!" });
+  } catch (error) {
+    console.error("Feedback error:", error);
+    res.status(500).json({ success: false, message: "Server error saving feedback." });
+  }
+});
 
 // --- GET STUDENT PROFILE (PROTECTED) ---
 app.get('/api/students/:id', verifyToken, async (req, res) => {

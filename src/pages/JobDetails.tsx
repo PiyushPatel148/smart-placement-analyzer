@@ -22,8 +22,12 @@ const JobDetails = () => {
         setJob(data);
 
         if (studentId) {
-          // REPLACED LOCALHOST
-          const userRes = await fetch(`${API_BASE_URL}/api/students/${studentId}`);
+          const token = localStorage.getItem("token");
+          const userRes = await fetch(`${API_BASE_URL}/api/students/${studentId}`, {
+            headers: {
+              "Authorization": `Bearer ${token}`
+            }
+          });
           const userData = await userRes.json();
           if (userData.student?.savedJobs?.includes(id)) {
             setIsSaved(true);
@@ -43,10 +47,13 @@ const JobDetails = () => {
   const handleSaveJob = async () => {
     if (!studentId || !id) return;
     try {
-      // REPLACED LOCALHOST
+      const token = localStorage.getItem("token");
       const res = await fetch(`${API_BASE_URL}/api/students/${studentId}/save-job`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ jobId: id })
       });
       if (res.ok) {

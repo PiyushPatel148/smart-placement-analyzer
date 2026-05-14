@@ -175,15 +175,15 @@ const Profile = () => {
             <div className="grid gap-6 md:grid-cols-2">
               <div className="md:col-span-2">
                 <label className="mb-2 block text-xs font-bold text-muted-foreground uppercase tracking-wider">Full Name</label>
-                <input type="text" value={name} onChange={(e: any) => setName(e.target.value)} className="w-full rounded-xl border border-border bg-background px-4 py-3.5 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none" placeholder="Enter your full name" required />
+                <input type="text" value={name} onChange={(e: any) => setName(e.target.value)} className="w-full rounded-xl border border-border bg-background px-4 py-3.5 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"  required />
               </div>
               <div>
                 <label className="mb-2 block text-xs font-bold text-muted-foreground uppercase tracking-wider">University / Education</label>
-                <input type="text" value={education} onChange={(e: any) => setEducation(e.target.value)} placeholder="e.g. NITK Surathkal" className="w-full rounded-xl border border-border bg-background px-4 py-3.5 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none" />
+                <input type="text" value={education} onChange={(e: any) => setEducation(e.target.value)} className="w-full rounded-xl border border-border bg-background px-4 py-3.5 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none" />
               </div>
               <div>
                 <label className="mb-2 block text-xs font-bold text-muted-foreground uppercase tracking-wider">Graduation Year</label>
-                <input type="number" value={gradYear} onChange={(e: any) => setGradYear(e.target.value)} placeholder="e.g. 2026" className="w-full rounded-xl border border-border bg-background px-4 py-3.5 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none" />
+                <input type="number" value={gradYear} onChange={(e: any) => setGradYear(e.target.value)} className="w-full rounded-xl border border-border bg-background px-4 py-3.5 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none" />
               </div>
               <div className="md:col-span-2">
                 <label className="mb-2 block text-xs font-bold text-muted-foreground uppercase tracking-wider">Target Role</label>
@@ -226,7 +226,7 @@ const Profile = () => {
               {skills.length === 0 && <span className="text-sm text-muted-foreground italic">No skills added yet.</span>}
             </div>
             <div className="flex gap-3">
-              <input type="text" value={newSkill} onChange={(e: any) => setNewSkill(e.target.value)} placeholder="e.g., GraphQL, Docker..." className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary outline-none transition-all" />
+              <input type="text" value={newSkill} onChange={(e: any) => setNewSkill(e.target.value)} className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary outline-none transition-all" />
               <button type="button" onClick={handleAddSkill} className="rounded-xl bg-muted px-8 py-3 text-sm font-bold text-foreground hover:bg-muted/80 transition-all active:scale-95 shadow-sm">Add</button>
             </div>
           </div>

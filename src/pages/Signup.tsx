@@ -73,11 +73,11 @@ const Signup = ({ onLogin }: SignupProps) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium">Full Name</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="John Doe" required className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}  required className="w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium">Graduation Year</label>

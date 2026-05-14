@@ -1,15 +1,9 @@
 /**
  * App.tsx — Main Application Component
- * Sets up routing and manages simple auth state.
- * The isLoggedIn state controls which pages users can access.
- * ROUTING:
- * - /login and /signup are public pages
- * - /dashboard, /profile, /resume, /jobs, /feedback are protected (require login)
- * - Unknown routes show 404 page
  */
 import { ThemeProvider } from "./components/theme-provider";
 import { useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -31,99 +25,21 @@ import Terms from "./pages/Terms";
 
 // Layout components
 import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
 
 const queryClient = new QueryClient();
 
-// 1. Inner component that can use the Router's useLocation hook
-const AppContent = ({ isLoggedIn, handleLogin, handleLogout }: any) => {
-  const location = useLocation();
-  
-  // Define exact paths where the footer should be HIDDEN
-  const hideFooterRoutes = [
-    "/dashboard", 
-    "/resume", 
-    "/profile", 
-    "/feedback",
-    "/login", 
-    "/signup"
-  ];
-  
-  // Show footer if the current path is NOT in the hidden list
-  const showFooter = !hideFooterRoutes.includes(location.pathname);
-
-  return (
-    <div className="flex flex-col min-h-screen">
-      {/* Navbar is shown on every page */}
-      <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
-      
-      {/* main tag pushes the footer to the bottom */}
-      <main className="flex-grow">
-        <Routes>
-          {/* Public routes */}
-          <Route path="/" element={<Landing isLoggedIn={isLoggedIn} />} />
-          <Route path="/login" element={<Login onLogin={handleLogin} />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/signup" element={<Signup onLogin={handleLogin} />} />
-
-          {/* Protected routes — redirect to login if not logged in */}
-          <Route
-            path="/dashboard"
-            element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/profile"
-            element={isLoggedIn ? <Profile /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/resume"
-            element={isLoggedIn ? <ResumeUpload /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/jobs"
-            element={isLoggedIn ? <Jobs /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/jobs/:id"
-            element={isLoggedIn ? <JobDetails /> : <Navigate to="/login" />}
-          />
-          
-          {/* Protected route for Feedback */}
-          <Route
-            path="/feedback"
-            element={isLoggedIn ? <Feedback /> : <Navigate to="/login" />}
-          />
-
-          {/* 404 catch-all */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </main>
-
-      {/* 2. Conditionally render the footer */}
-      {showFooter && <Footer />}
-    </div>
-  );
-};
-
 const App = () => {
-  // Simple auth state — true if user is logged in
-  // Check localStorage to persist login across page refreshes
   const [isLoggedIn, setIsLoggedIn] = useState(
     () => !!localStorage.getItem("token")
   );
 
-  // Called when user logs in successfully
   const handleLogin = () => setIsLoggedIn(true);
 
-  // Called when user clicks logout
   const handleLogout = () => {
-    // Clear ALL user data from browser memory on logout
     localStorage.removeItem("token");
     localStorage.removeItem("userName");
     localStorage.removeItem("studentId");
     localStorage.removeItem("userSkills");
-    
     setIsLoggedIn(false);
   };
 
@@ -133,13 +49,44 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          {/* BrowserRouter must wrap the component using useLocation */}
           <BrowserRouter>
-            <AppContent 
-              isLoggedIn={isLoggedIn} 
-              handleLogin={handleLogin} 
-              handleLogout={handleLogout} 
-            />
+            <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Landing isLoggedIn={isLoggedIn} />} />
+              <Route path="/login" element={<Login onLogin={handleLogin} />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/signup" element={<Signup onLogin={handleLogin} />} />
+
+              {/* Protected routes */}
+              <Route
+                path="/dashboard"
+                element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" />}
+              />
+              <Route
+                path="/profile"
+                element={isLoggedIn ? <Profile /> : <Navigate to="/login" />}
+              />
+              <Route
+                path="/resume"
+                element={isLoggedIn ? <ResumeUpload /> : <Navigate to="/login" />}
+              />
+              <Route
+                path="/jobs"
+                element={isLoggedIn ? <Jobs /> : <Navigate to="/login" />}
+              />
+              <Route
+                path="/jobs/:id"
+                element={isLoggedIn ? <JobDetails /> : <Navigate to="/login" />}
+              />
+              <Route
+                path="/feedback"
+                element={isLoggedIn ? <Feedback /> : <Navigate to="/login" />}
+              />
+
+              <Route path="*" element={<NotFound />} />
+            </Routes>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
